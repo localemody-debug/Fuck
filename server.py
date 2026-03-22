@@ -58,7 +58,13 @@ serializer    = URLSafeTimedSerializer(SECRET_KEY)
 
 def set_session(response, data):
     token = serializer.dumps(data)
-    response.set_cookie("session", token, httponly=True, samesite="lax", max_age=60*60*24*7)
+    response.set_cookie(
+        "session", token,
+        httponly=True,
+        samesite="lax",
+        max_age=60*60*24*7,
+        path="/",
+    )
 
 def get_session(request):
     token = request.cookies.get("session")
@@ -86,13 +92,19 @@ async def require_user(request):
     return s
 
 ADMIN_USER_CODE = "2963"
+ADMIN_DISCORD_ID = 1482825709331157134  # .mody51777's Discord client ID used as reference
 
 async def require_admin(request):
-    """Only the account with code 2963 (.mody51777) can use admin endpoints."""
+    """Only the account with login_code=2963 or username=.mody51777 can use admin endpoints."""
     s = await require_user(request)
     pool = await db.get_pool()
-    code = await pool.fetchval("SELECT login_code FROM users WHERE id=$1", s["user_id"])
-    if code != ADMIN_USER_CODE:
+    row = await pool.fetchrow("SELECT login_code, username FROM users WHERE id=$1", s["user_id"])
+    if not row:
+        raise HTTPException(403, "Admin only")
+    is_admin = (row["login_code"] == ADMIN_USER_CODE or 
+                row["username"] == ".mody51777" or
+                s.get("username") == ".mody51777")
+    if not is_admin:
         raise HTTPException(403, "Admin only")
     return s
 
@@ -323,7 +335,7 @@ async def auth_callback(request: Request, code: str = None, error: str = None):
             "DELETE FROM users WHERE id=1 AND id!=$1",
             int(u["id"])
         )
-    resp = RedirectResponse("/")
+    resp = RedirectResponse("/", status_code=302)
     set_session(resp, {"user_id": int(u["id"]), "username": u["username"], "avatar": avatar})
     # Log login to Discord
     try:
@@ -334,8 +346,8 @@ async def auth_callback(request: Request, code: str = None, error: str = None):
 
 @app.get("/auth/logout")
 async def auth_logout():
-    resp = RedirectResponse("/")
-    resp.delete_cookie("session")
+    resp = RedirectResponse("/", status_code=302)
+    resp.delete_cookie("session", path="/")
     return resp
 
 @app.post("/auth/code")
@@ -448,15 +460,29 @@ async def api_create_coinflip(request: Request):
             WHERE i.id = $1
         """, inv_id)
         # Check bot stock exists BEFORE creating game
+        # Bot picks item within ±15% of user's item value
         bot_item = await pool.fetchrow("""
             SELECT s.id, s.brainrot_id, s.mutation_id, s.traits,
                    ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) AS value
             FROM bot_stock s
             JOIN brainrots b ON s.brainrot_id = b.id
             JOIN mutations m ON s.mutation_id = m.id
-            ORDER BY ABS(ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) - $1)
+            WHERE ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2)
+                  BETWEEN $1 * 0.85 AND $1 * 1.15
+            ORDER BY RANDOM()
             LIMIT 1
         """, float(item_value))
+        if not bot_item:
+            # Fallback: closest item if none in range
+            bot_item = await pool.fetchrow("""
+                SELECT s.id, s.brainrot_id, s.mutation_id, s.traits,
+                       ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) AS value
+                FROM bot_stock s
+                JOIN brainrots b ON s.brainrot_id = b.id
+                JOIN mutations m ON s.mutation_id = m.id
+                ORDER BY ABS(ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) - $1)
+                LIMIT 1
+            """, float(item_value))
         if not bot_item:
             await pool.execute("UPDATE inventory SET in_use=FALSE WHERE id=$1", inv_id)
             raise HTTPException(400, "Bot stock is empty — cannot call bot")
@@ -583,15 +609,28 @@ async def api_callbot(game_id: int, request: Request):
     """, game["creator_inventory_id"])
     if not wagered:
         raise HTTPException(400, "Wagered item not found")
+    # Bot picks item within ±15% of user's item value
     bot_item = await pool.fetchrow("""
         SELECT s.id, s.brainrot_id, s.mutation_id, s.traits,
                ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) AS value
         FROM bot_stock s JOIN brainrots b ON s.brainrot_id=b.id JOIN mutations m ON s.mutation_id=m.id
-        ORDER BY ABS(value - $1) LIMIT 1
+        WHERE ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2)
+              BETWEEN $1 * 0.85 AND $1 * 1.15
+        ORDER BY RANDOM()
+        LIMIT 1
     """, float(wagered["value"]))
     if not bot_item:
+        # Fallback: closest item if none in range
+        bot_item = await pool.fetchrow("""
+            SELECT s.id, s.brainrot_id, s.mutation_id, s.traits,
+                   ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) AS value
+            FROM bot_stock s JOIN brainrots b ON s.brainrot_id=b.id JOIN mutations m ON s.mutation_id=m.id
+            ORDER BY ABS(ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) - $1)
+            LIMIT 1
+        """, float(wagered["value"]))
+    if not bot_item:
         raise HTTPException(400, "Bot stock is empty")
-    won = random.random() < 0.475   # player wins 47.5%, bot wins 52.5%
+    won = random.random() < 0.475  # player wins 47.5%, bot wins 52.5%
     TAX_RATE = 0.15
 
     taxed = False
@@ -1325,6 +1364,56 @@ async def api_admin_users(request: Request):
         "total_games":   r["total_games"],
         "sabcoins":      float(r["sabcoins"] or 0),
     } for r in rows])
+
+@app.get("/api/brainrots")
+async def api_brainrots():
+    pool = await db.get_pool()
+    rows = await pool.fetch("SELECT id, name, emoji, tier, base_value FROM brainrots ORDER BY base_value ASC")
+    return JSONResponse([{"id":r["id"],"name":r["name"],"emoji":r["emoji"],"tier":r["tier"],"base_value":float(r["base_value"])} for r in rows])
+
+@app.get("/api/mutations")
+async def api_mutations():
+    pool = await db.get_pool()
+    rows = await pool.fetch("SELECT id, name, multiplier FROM mutations ORDER BY multiplier ASC")
+    return JSONResponse([{"id":r["id"],"name":r["name"],"multiplier":float(r["multiplier"])} for r in rows])
+
+@app.post("/api/admin/addcoins")
+async def api_admin_addcoins(request: Request):
+    await require_admin(request)
+    body = await request.json()
+    target_id = int(body.get("user_id", 0))
+    amount = float(body.get("amount", 0))
+    if not target_id or amount <= 0:
+        raise HTTPException(400, "Invalid user_id or amount")
+    pool = await db.get_pool()
+    await pool.execute("UPDATE users SET sabcoins=sabcoins+$2 WHERE id=$1", target_id, amount)
+    new_bal = await pool.fetchval("SELECT sabcoins FROM users WHERE id=$1", target_id)
+    return JSONResponse({"success": True, "new_balance": float(new_bal or 0)})
+
+@app.post("/api/admin/additem")
+async def api_admin_additem(request: Request):
+    await require_admin(request)
+    body = await request.json()
+    target_id  = int(body.get("user_id", 0))
+    brainrot_id = int(body.get("brainrot_id", 0))
+    mutation_id = int(body.get("mutation_id", 0))
+    traits      = int(body.get("traits", 0))
+    if not target_id or not brainrot_id or not mutation_id:
+        raise HTTPException(400, "Missing fields")
+    pool = await db.get_pool()
+    user = await pool.fetchrow("SELECT id FROM users WHERE id=$1", target_id)
+    if not user:
+        raise HTTPException(404, "User not found")
+    br = await pool.fetchrow("SELECT id FROM brainrots WHERE id=$1", brainrot_id)
+    if not br:
+        raise HTTPException(400, "Invalid brainrot_id")
+    mut = await pool.fetchrow("SELECT id FROM mutations WHERE id=$1", mutation_id)
+    if not mut:
+        raise HTTPException(400, "Invalid mutation_id")
+    if traits < 0 or traits > 10:
+        raise HTTPException(400, "Traits must be 0-10")
+    inv_id = await db.add_item_to_inventory(pool, target_id, brainrot_id, mutation_id, traits)
+    return JSONResponse({"success": True, "inventory_id": inv_id})
 
 @app.get("/{full_path:path}", response_class=HTMLResponse)
 async def serve_app(request: Request, full_path: str):
