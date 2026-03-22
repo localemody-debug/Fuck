@@ -4,19 +4,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def run_web():
-    port    = int(os.environ.get("PORT", 8000))
-    workers = int(os.environ.get("WEB_WORKERS", 4))
+    port = int(os.environ.get("PORT", 8000))
     uvicorn.run(
         "server:app",
         host="0.0.0.0",
         port=port,
-        workers=workers,           # multiple processes to use all CPU cores
-        log_level="warning",       # reduce I/O overhead in prod
-        access_log=False,          # disable per-request logs at scale
-        loop="uvloop",             # fastest async event loop available
-        http="httptools",          # fastest HTTP parser
-        backlog=2048,              # accept queue depth
-        timeout_keep_alive=30,     # release idle connections faster
+        log_level="warning",
+        access_log=False,
+        backlog=2048,
+        timeout_keep_alive=30,
     )
 
 async def run_bot():
