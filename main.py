@@ -16,8 +16,8 @@ def run_web():
     )
 
 async def run_bot():
-    from bot.bot import bot
-    await bot.start(os.environ["DISCORD_TOKEN"])
+    import bot as bot_module
+    await bot_module.bot.start(os.environ["DISCORD_TOKEN"])
 
 if __name__ == "__main__":
     web_thread = threading.Thread(target=run_web, daemon=True)
