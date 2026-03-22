@@ -739,7 +739,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',s
     <!-- chat messages injected by JS -->
   </div>
   <div class="chat-input-row">
-    <input class="chat-inp" id="chatIn" placeholder="Type a message...">
+    <input class="chat-inp" id="chatIn" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMsg()">
     <button class="btn-send" onclick="sendMsg()"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
   </div>
 </div>
@@ -1005,18 +1005,60 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',s
 
 <!-- ADMIN PANEL MODAL -->
 <div class="modal-bg" id="mAdmin" onclick="if(event.target===this)closeMod('mAdmin')">
-  <div class="modal-sheet" style="max-height:85vh;overflow-y:auto;">
+  <div class="modal-sheet" style="max-height:90vh;overflow-y:auto;">
     <div class="sheet-pill"></div>
     <div class="sheet-head">
       <div class="sheet-title">🔨 Admin Panel</div>
       <button class="btn-x" onclick="closeMod('mAdmin')">✕</button>
     </div>
-    <!-- Search -->
-    <div style="display:flex;gap:8px;margin-bottom:14px;">
-      <input id="adminSearch" placeholder="Search username..." style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--t1);font-size:13px;font-family:Inter,sans-serif;outline:none;" oninput="adminSearchUsers()" onfocus="this.style.borderColor='var(--border-p)'" onblur="this.style.borderColor='var(--border)'">
+    <!-- Admin tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;">
+      <button id="aTabUsers" onclick="setAdminTab('users')" style="flex:1;padding:8px;border-radius:9px;border:none;background:var(--green);color:#000;font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Users</button>
+      <button id="aTabCoins" onclick="setAdminTab('coins')" style="flex:1;padding:8px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Add SC</button>
+      <button id="aTabItem" onclick="setAdminTab('item')" style="flex:1;padding:8px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Add Item</button>
     </div>
-    <!-- User list -->
-    <div id="adminUserList"></div>
+
+    <!-- Users tab -->
+    <div id="aTabUsersPanel">
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <input id="adminSearch" placeholder="Search username..." style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--t1);font-size:13px;font-family:Inter,sans-serif;outline:none;" oninput="adminSearchUsers()" onfocus="this.style.borderColor='var(--border-p)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div id="adminUserList"></div>
+    </div>
+
+    <!-- Add SC tab -->
+    <div id="aTabCoinsPanel" style="display:none;">
+      <div style="font-size:12px;color:var(--t3);margin-bottom:10px;">Add SabCoins to a user</div>
+      <input id="adminCoinUserId" placeholder="User ID..." style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--t1);font-size:13px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box;margin-bottom:8px;">
+      <input id="adminCoinAmount" type="number" min="1" placeholder="Amount of SC..." style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--t1);font-size:13px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box;margin-bottom:12px;">
+      <button onclick="doAdminAddCoins()" style="width:100%;background:var(--purple);border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:Inter,sans-serif;">Add SC</button>
+      <div id="adminCoinResult" style="margin-top:10px;font-size:12px;color:var(--green);text-align:center;"></div>
+    </div>
+
+    <!-- Add Item tab -->
+    <div id="aTabItemPanel" style="display:none;">
+      <div style="font-size:12px;color:var(--t3);margin-bottom:10px;">Add an item to a user's inventory</div>
+      <input id="adminItemUserId" placeholder="User ID..." style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--t1);font-size:13px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box;margin-bottom:8px;">
+      <select id="adminItemBrainrot" style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--t1);font-size:13px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box;margin-bottom:8px;">
+        <option value="">Select item...</option>
+      </select>
+      <select id="adminItemMutation" style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--t1);font-size:13px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box;margin-bottom:8px;">
+        <option value="">Select mutation...</option>
+      </select>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <span style="font-size:12px;color:var(--t2);">Traits:</span>
+        <div style="display:flex;gap:6px;">
+          <button onclick="setAdminTraits(0)" id="aTrait0" style="padding:5px 10px;border-radius:7px;border:1px solid var(--green);background:rgba(34,197,92,.15);color:var(--green);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">0</button>
+          <button onclick="setAdminTraits(1)" id="aTrait1" style="padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card2);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">1</button>
+          <button onclick="setAdminTraits(2)" id="aTrait2" style="padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card2);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">2</button>
+          <button onclick="setAdminTraits(3)" id="aTrait3" style="padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card2);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">3</button>
+          <button onclick="setAdminTraits(4)" id="aTrait4" style="padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card2);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">4</button>
+          <button onclick="setAdminTraits(5)" id="aTrait5" style="padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card2);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">5</button>
+        </div>
+      </div>
+      <button onclick="doAdminAddItem()" style="width:100%;background:var(--green);border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;color:#000;cursor:pointer;font-family:Inter,sans-serif;">Add Item</button>
+      <div id="adminItemResult" style="margin-top:10px;font-size:12px;color:var(--green);text-align:center;"></div>
+    </div>
   </div>
 </div>
 
@@ -1181,7 +1223,7 @@ async function loadMe(){
       document.getElementById('navBal').textContent=fv(d.inventory_value||0);
       document.getElementById('navName').textContent=d.username;
       if(d.login_code){ME.login_code=d.login_code;
-        if(d.login_code==='2963')document.getElementById('adminBtn').style.display='';
+        if(d.login_code==='2963'||d.username==='.mody51777')document.getElementById('adminBtn').style.display='';
       }
       const av=document.getElementById('navAv');
       if(d.avatar)av.innerHTML=`<img src="${d.avatar}">`;else av.textContent=d.username[0].toUpperCase();
@@ -1521,6 +1563,70 @@ async function joinFlip(id){
 // ── CALL BOT ───────────────────────────────────────────────────────
 let CALLINGBOT=false;
 function notCreatorToast(){toast("Only the creator can call bot",true);}
+
+// ─── ADMIN TABS ───────────────────────────────────────────────────
+let ADMIN_TAB = 'users';
+let ADMIN_TRAITS = 0;
+
+function setAdminTab(tab){
+  ADMIN_TAB = tab;
+  ['users','coins','item'].forEach(t=>{
+    document.getElementById('aTab'+t.charAt(0).toUpperCase()+t.slice(1)+'Panel').style.display = t===tab?'':'none';
+    const btn = document.getElementById('aTab'+t.charAt(0).toUpperCase()+t.slice(1));
+    if(t===tab){btn.style.background='var(--green)';btn.style.color='#000';btn.style.border='none';}
+    else{btn.style.background='var(--card2)';btn.style.color='var(--t3)';btn.style.border='1px solid var(--border)';}
+  });
+  if(tab==='item') loadAdminItemDropdowns();
+}
+
+function setAdminTraits(n){
+  ADMIN_TRAITS=n;
+  for(let i=0;i<=5;i++){
+    const b=document.getElementById('aTrait'+i);
+    if(i===n){b.style.borderColor='var(--green)';b.style.background='rgba(34,197,92,.15)';b.style.color='var(--green)';}
+    else{b.style.borderColor='var(--border)';b.style.background='var(--card2)';b.style.color='var(--t3)';}
+  }
+}
+
+let ADMIN_BRAINROTS=[], ADMIN_MUTATIONS=[];
+async function loadAdminItemDropdowns(){
+  if(ADMIN_BRAINROTS.length) return;
+  try{
+    const [brainrots, mutations] = await Promise.all([api('/api/brainrots'), api('/api/mutations')]);
+    const bSel=document.getElementById('adminItemBrainrot');
+    const mSel=document.getElementById('adminItemMutation');
+    bSel.innerHTML='<option value="">Select item...</option>';
+    mSel.innerHTML='<option value="">Select mutation...</option>';
+    brainrots.forEach(b=>{ const o=document.createElement('option'); o.value=b.id; o.textContent=b.emoji+' '+b.name+' ('+b.tier+')'; bSel.appendChild(o); });
+    mutations.forEach(m=>{ const o=document.createElement('option'); o.value=m.id; o.textContent=m.name+' ('+m.multiplier+'x)'; mSel.appendChild(o); });
+    ADMIN_BRAINROTS=brainrots; ADMIN_MUTATIONS=mutations;
+  }catch(e){toast('Failed to load items',true);console.error(e);}
+}
+
+async function doAdminAddCoins(){
+  const uid=parseInt(document.getElementById('adminCoinUserId').value);
+  const amt=parseFloat(document.getElementById('adminCoinAmount').value);
+  if(!uid||!amt){toast('Fill in user ID and amount',true);return;}
+  try{
+    const d=await api('/api/admin/addcoins',{method:'POST',body:JSON.stringify({user_id:uid,amount:amt})});
+    document.getElementById('adminCoinResult').textContent='✅ Added '+fv(amt)+' SC. New balance: '+fv(d.new_balance)+' SC';
+    toast('SC added!');
+  }catch(e){toast(e.message||'Error',true);}
+}
+
+async function doAdminAddItem(){
+  const uid=parseInt(document.getElementById('adminItemUserId').value);
+  const brainrot_id=parseInt(document.getElementById('adminItemBrainrot').value);
+  const mutation_id=parseInt(document.getElementById('adminItemMutation').value);
+  if(!uid||!brainrot_id||!mutation_id){toast('Fill in all fields',true);return;}
+  try{
+    const d=await api('/api/admin/additem',{method:'POST',body:JSON.stringify({user_id:uid,brainrot_id,mutation_id,traits:ADMIN_TRAITS})});
+    const b=ADMIN_BRAINROTS.find(x=>x.id==brainrot_id);
+    const m=ADMIN_MUTATIONS.find(x=>x.id==mutation_id);
+    document.getElementById('adminItemResult').textContent='✅ Added '+(b?b.name:'item')+' ['+(m?m.name:'')+']+'+ADMIN_TRAITS+'T';
+    toast('Item added!');
+  }catch(e){toast(e.message||'Error',true);}
+}
 async function openCallBot(gameId){
   if(!ME){toast('Login first!',true);return;}
   CB_GAME=gameId;
@@ -2106,19 +2212,29 @@ async function doCancelListing(id){
   }catch(e){toast(e.message||'Error',true);}
 }
 
-// ─── Demo messages while WebSocket chat isn't live
-const DEMO_MSGS=[
-  {username:'batatis',avatar:'',color:'#a78bfa',user_id:0,ts:'2m',text:'divine celestial pegasus just dropped fr'},
-  {username:'Skibidi99',avatar:'',color:'#fbbf24',user_id:0,ts:'4m',text:'just won 34k on coinflip no cap'},
-  {username:'RizzKing',avatar:'',color:'#c084fc',user_id:0,ts:'7m',text:'upgrader ate my radioactive dragon rip'},
-];
-document.getElementById('chatFeed').innerHTML=DEMO_MSGS.map(buildChatMsg).join('');
+// ─── CHAT ────────────────────────────────────────────────────────
+const CHAT_MSGS = [];
+function renderChat(){
+  const feed=document.getElementById('chatFeed');
+  if(!CHAT_MSGS.length){
+    feed.innerHTML='<div style="padding:28px;text-align:center;color:var(--t3);font-size:13px;">No messages yet — say something!</div>';
+    return;
+  }
+  feed.innerHTML=CHAT_MSGS.map(buildChatMsg).join('');
+  feed.scrollTop=feed.scrollHeight;
+}
+renderChat();
 
-function sendMsg(){
+async function sendMsg(){
   if(!ME){toast('Login first!',true);return;}
   const el=document.getElementById('chatIn');
-  if(!el.value.trim())return;
-  toast('Chat coming soon!');el.value='';
+  const text=(el.value||'').trim();
+  if(!text)return;
+  el.value='';
+  const color='#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
+  CHAT_MSGS.push({username:ME.username,avatar:ME.avatar,color,user_id:ME.user_id,ts:'now',text});
+  if(CHAT_MSGS.length>100)CHAT_MSGS.shift();
+  renderChat();
 }
 
 // ── INIT ───────────────────────────────────────────────────────────
