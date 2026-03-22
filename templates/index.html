@@ -1,0 +1,2133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>SabPot</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#12131f;
+  --card:#1c1d2e;
+  --card2:#22243a;
+  --card3:#2a2c46;
+  --card4:#32345a;
+  --green:#3ddc5c;
+  --green-d:#2dbf4e;
+  --green-glow:rgba(61,220,92,0.2);
+  --purple:#6c5ce7;
+  --purple-l:#7c6df0;
+  --purple-d:#5a4bd1;
+  --purple-glow:rgba(108,92,231,0.3);
+  --amber:#f0b429;
+  --red:#f23535;
+  --sky:#38c5f5;
+  --t1:#ffffff;
+  --t2:#a0a3c0;
+  --t3:#5a5d80;
+  --border:rgba(255,255,255,0.07);
+  --border-p:rgba(108,92,231,0.3);
+}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;overflow-x:hidden;}
+::-webkit-scrollbar{width:2px;}
+::-webkit-scrollbar-thumb{background:var(--card3);}
+
+/* ── TOPBAR ── */
+.topbar{
+  height:58px;display:flex;align-items:center;padding:0 14px;
+  background:var(--card);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:200;gap:10px;
+}
+.logo{display:flex;align-items:center;gap:7px;text-decoration:none;}
+.logo-fire{width:26px;height:26px;}
+.logo-name{font-size:18px;font-weight:900;color:var(--t1);letter-spacing:-0.3px;}
+.logo-name em{color:var(--purple-l);font-style:normal;}
+.topbar-mid{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;}
+.bal-pill{
+  display:flex;align-items:center;gap:6px;
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:20px;padding:5px 12px;cursor:pointer;
+  transition:border-color .15s;
+}
+.bal-pill:hover{border-color:var(--border-p);}
+.bal-coin{width:16px;height:16px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;}
+.bal-coin svg{width:10px;height:10px;fill:#000;}
+.bal-n{font-size:13px;font-weight:700;color:var(--green);}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.login-btn{
+  background:var(--purple);border:none;border-radius:8px;
+  padding:8px 14px;color:#fff;font-size:13px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;gap:5px;
+  transition:background .15s;text-decoration:none;
+  white-space:nowrap;
+}
+.login-btn:hover{background:var(--purple-d);}
+.login-btn svg{width:13px;height:13px;fill:#fff;}
+.avatar-chip{
+  display:flex;align-items:center;gap:7px;
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:20px;padding:4px 12px 4px 4px;cursor:pointer;
+  transition:border-color .15s;
+}
+.avatar-chip:hover{border-color:var(--border-p);}
+.av-img{width:28px;height:28px;border-radius:50%;background:var(--purple);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
+.av-img img{width:100%;height:100%;object-fit:cover;}
+.av-name{font-size:12px;font-weight:600;color:var(--t2);}
+
+
+
+/* ── PAGES ── */
+.page{display:none;}
+.page.on{display:block;animation:pgIn .22s ease;}
+#pg-chat.on{display:flex;flex-direction:column;}
+@keyframes pgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.wrap{padding:12px 12px 86px;max-width:480px;margin:0 auto;}
+
+/* ── COINFLIP CREATE PANEL ── */
+.create-panel{
+  background:var(--card);border-radius:16px;
+  padding:14px;margin-bottom:14px;
+  border:1px solid var(--border);
+}
+.btn-create{
+  width:100%;background:var(--green);border:none;
+  border-radius:12px;padding:15px;font-size:17px;font-weight:800;
+  color:#000;cursor:pointer;letter-spacing:0.2px;
+  transition:all .15s;margin-bottom:12px;position:relative;overflow:hidden;
+}
+.btn-create::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0);transition:background .15s;}
+.btn-create:hover::after{background:rgba(255,255,255,0.08);}
+.btn-create:active{transform:scale(.98);}
+
+.bet-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
+.bet-inp{
+  flex:1;background:var(--card2);border:1px solid var(--border);
+  border-radius:10px;padding:11px 14px;color:var(--t1);
+  font-size:14px;font-family:'Inter',sans-serif;outline:none;
+  transition:border-color .15s;
+}
+.bet-inp:focus{border-color:var(--border-p);}
+.bet-inp::placeholder{color:var(--t3);}
+.side-wrap{display:flex;gap:6px;}
+.side-orb{
+  width:44px;height:44px;border-radius:50%;border:2.5px solid var(--border);
+  background:var(--card2);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:20px;transition:all .15s;
+}
+.side-orb:hover{transform:scale(1.08);}
+.side-orb.fire.on{border-color:#f97316;background:rgba(249,115,22,.18);box-shadow:0 0 14px rgba(249,115,22,.35);}
+.side-orb.ice.on{border-color:var(--sky);background:rgba(56,197,245,.14);box-shadow:0 0 14px rgba(56,197,245,.3);}
+
+.btn-placebet{
+  width:100%;background:var(--green);border:none;
+  border-radius:10px;padding:12px;
+  font-size:14px;font-weight:700;color:#000;cursor:pointer;
+  transition:all .15s;position:relative;overflow:hidden;
+}
+.btn-placebet::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0);transition:background .15s;}
+.btn-placebet:hover::after{background:rgba(255,255,255,0.08);}
+.btn-placebet:active{transform:scale(.98);}
+
+/* ── FILTERS ── */
+.filters{display:flex;gap:8px;margin-bottom:12px;}
+.fsel{
+  flex:1;background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:10px 12px;color:var(--t2);
+  font-size:12px;font-family:'Inter',sans-serif;font-weight:500;
+  outline:none;appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a5d80'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+  transition:border-color .15s;
+}
+.fsel:focus{border-color:var(--border-p);}
+
+/* ── GAME CARDS ── */
+.gcard{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:14px;margin-bottom:10px;
+  animation:slideUp .3s ease both;transition:transform .15s,border-color .15s;
+}
+.gcard:hover{border-color:var(--border-p);transform:translateY(-2px);}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* player row */
+.gcard-players{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:0 4px;}
+.gp{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.gp-ring{
+  width:54px;height:54px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--card2);position:relative;
+}
+.gp-ring.fire-ring{box-shadow:0 0 0 2.5px #f97316;}
+.gp-ring.ice-ring{box-shadow:0 0 0 2.5px var(--sky);}
+.gp-inner{
+  width:46px;height:46px;border-radius:50%;background:var(--card3);
+  overflow:hidden;display:flex;align-items:center;justify-content:center;
+}
+.gp-inner img{width:100%;height:100%;object-fit:cover;}
+.gp-inner svg{width:22px;height:22px;fill:var(--t3);}
+.side-badge{
+  position:absolute;bottom:-1px;right:-1px;
+  width:19px;height:19px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;border:2px solid var(--card);
+}
+.side-badge.fire{background:#f97316;}
+.side-badge.ice{background:var(--sky);}
+.gp-name{font-size:10px;font-weight:600;color:var(--t2);}
+
+.vs-pill{
+  font-size:12px;font-weight:700;color:var(--t3);
+  background:var(--card2);border-radius:6px;padding:3px 9px;
+}
+.mystery-ring{
+  width:54px;height:54px;border-radius:50%;
+  background:var(--card2);border:2px dashed var(--t3);
+  display:flex;align-items:center;justify-content:center;
+}
+.mystery-ring svg{width:22px;height:22px;fill:var(--t3);}
+
+/* item row */
+.gcard-item{
+  background:var(--card2);border-radius:12px;
+  padding:10px 12px;margin-bottom:10px;
+  display:flex;align-items:center;justify-content:center;
+}
+.item-box{
+  width:60px;height:60px;border-radius:10px;
+  background:var(--card3);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.item-box img{width:100%;height:100%;object-fit:cover;}
+.item-box svg{width:26px;height:26px;fill:var(--t3);}
+
+/* footer */
+.gcard-foot{display:flex;align-items:center;justify-content:space-between;}
+.gcard-foot-left{display:flex;align-items:center;gap:8px;}
+.eye-btn{
+  width:30px;height:30px;border-radius:8px;background:var(--card2);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:background .15s;
+}
+.eye-btn:hover{background:var(--card3);}
+.eye-btn svg{width:15px;height:15px;fill:var(--t2);}
+.coin-val{display:flex;align-items:center;gap:5px;}
+.coin-dot{width:18px;height:18px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.coin-dot svg{width:11px;height:11px;fill:#000;}
+.coin-num{font-size:16px;font-weight:800;color:var(--t1);}
+
+.btn-join{
+  background:var(--green);border:none;border-radius:10px;
+  padding:10px 24px;font-size:14px;font-weight:700;color:#000;
+  cursor:pointer;transition:all .15s;position:relative;overflow:hidden;
+}
+.btn-join::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0);transition:background .15s;}
+.btn-join:hover::after{background:rgba(255,255,255,0.1);}
+.btn-join:active{transform:scale(.96);}
+
+.callbot-bar{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.btn-callbot{
+  width:100%;background:transparent;
+  border:1px dashed rgba(108,92,231,0.3);
+  border-radius:8px;padding:8px;
+  font-size:11px;font-weight:600;color:var(--t3);
+  cursor:pointer;transition:all .15s;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  font-family:'Inter',sans-serif;
+}
+.btn-callbot:hover{border-color:var(--purple);color:var(--purple-l);background:rgba(108,92,231,.07);}
+.btn-callbot svg{width:13px;height:13px;fill:currentColor;}
+
+/* ── MUT BADGES ── */
+.mut{display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;}
+.mut-Base{color:var(--t3);}
+.mut-Gold{color:#fbbf24;background:rgba(251,191,36,.1);}
+.mut-Diamond{color:#67e8f9;background:rgba(103,232,249,.08);}
+.mut-Bloodrot{color:#f87171;background:rgba(248,113,113,.08);}
+.mut-Lava{color:#fb923c;background:rgba(251,146,60,.08);}
+.mut-Candy{color:#f472b6;background:rgba(244,114,182,.08);}
+.mut-Galaxy{color:#c084fc;background:rgba(192,132,252,.08);}
+.mut-Yingyang{color:#e2e8f0;background:rgba(226,232,240,.08);}
+.mut-Radioactive{color:#a3e635;background:rgba(163,230,53,.08);}
+.mut-Cursed{color:#a78bfa;background:rgba(167,139,250,.08);}
+.mut-Rainbow{color:#fb7185;background:rgba(251,113,133,.08);}
+.mut-Divine{color:#fde68a;background:rgba(253,230,138,.1);}
+
+/* ── UPGRADER ── */
+.upg-wrap{display:flex;flex-direction:column;align-items:center;}
+.warn-bar{
+  width:100%;background:rgba(242,53,53,.07);border:1px solid rgba(242,53,53,.2);
+  border-radius:10px;padding:9px 13px;font-size:11px;font-weight:600;color:var(--red);
+  margin-bottom:14px;display:flex;align-items:center;gap:6px;
+}
+.warn-bar svg{width:13px;height:13px;fill:var(--red);flex-shrink:0;}
+.wheel-outer{position:relative;width:220px;height:220px;margin-bottom:16px;}
+.wheel-svg-el{width:100%;height:100%;}
+.w-needle{position:absolute;top:-13px;left:50%;transform:translateX(-50%);z-index:5;filter:drop-shadow(0 2px 5px rgba(0,0,0,.6));}
+.w-hub{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:76px;height:76px;background:var(--bg);border-radius:50%;
+  border:3px solid var(--card3);z-index:4;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  box-shadow:0 0 0 6px var(--bg);
+  transition:box-shadow .3s;
+}
+.w-hub.spinning{box-shadow:0 0 0 6px var(--bg),0 0 20px rgba(61,220,92,0.15);animation:hubPulse 0.8s ease-in-out infinite;}
+@keyframes hubPulse{0%,100%{border-color:var(--card3)}50%{border-color:rgba(108,92,231,0.5)}}
+.w-pct{font-size:21px;font-weight:900;color:var(--green);}
+.w-lbl{font-size:7px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;font-weight:600;}
+
+.upg-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-bottom:14px;}
+.upg-num{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;}
+.upg-num-l{font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:5px;}
+.upg-num-v{font-size:17px;font-weight:800;}
+
+.btn-upg{
+  width:100%;border:none;border-radius:12px;padding:15px;
+  font-size:16px;font-weight:800;cursor:pointer;margin-bottom:14px;
+  transition:all .15s;font-family:'Inter',sans-serif;
+  background:var(--card2);color:var(--t3);
+}
+.btn-upg.go{background:var(--purple);color:#fff;box-shadow:0 4px 20px var(--purple-glow);}
+.btn-upg.go:hover{background:var(--purple-d);transform:translateY(-1px);}
+.btn-upg:disabled{opacity:.4;cursor:not-allowed;transform:none!important;}
+
+.upg-panel{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:13px;margin-bottom:10px;width:100%;
+}
+.upg-ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.upg-pl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--t3);}
+.upg-pv{font-size:13px;font-weight:800;color:var(--green);}
+.empty-txt{padding:14px;text-align:center;font-size:11px;color:var(--t3);font-style:italic;}
+.btn-pick{
+  width:100%;background:var(--card2);border:1px dashed var(--border);
+  border-radius:9px;padding:9px;font-size:11px;font-weight:600;
+  color:var(--t3);cursor:pointer;transition:all .15s;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  font-family:'Inter',sans-serif;
+}
+.btn-pick:hover{border-color:var(--border-p);color:var(--purple-l);}
+.btn-pick svg{width:12px;height:12px;fill:currentColor;}
+.sel-row{
+  display:flex;align-items:center;gap:10px;background:var(--card2);
+  border-radius:9px;border-left:3px solid var(--purple);padding:9px 11px;
+}
+.sel-th{width:34px;height:34px;border-radius:7px;background:var(--card3);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+.sel-th img{width:100%;height:100%;object-fit:cover;}
+.sel-th svg{width:15px;height:15px;fill:var(--t3);}
+.sel-nm{flex:1;font-size:12px;font-weight:600;}
+.sel-vl{font-size:12px;font-weight:800;color:var(--green);}
+
+/* ── LEADERBOARD ── */
+.sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--t3);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.lb-card{
+  display:flex;align-items:center;gap:12px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:12px 14px;margin-bottom:8px;
+  cursor:pointer;transition:all .15s;
+  animation:slideUp .3s ease both;
+}
+.lb-card:hover{border-color:var(--border-p);transform:translateX(4px);}
+.lb-rank{font-size:19px;font-weight:900;width:28px;text-align:center;flex-shrink:0;}
+.lb-av{width:40px;height:40px;border-radius:50%;background:var(--card2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;}
+.lb-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.lb-info{flex:1;}
+.lb-nm{font-size:13px;font-weight:700;}
+.lb-sub{font-size:10px;color:var(--t3);margin-top:2px;}
+.lb-val{font-size:15px;font-weight:800;color:var(--green);text-align:right;}
+.lb-wr{font-size:10px;color:var(--t3);text-align:right;margin-top:2px;}
+
+/* ── CHAT ── */
+.chat-feed{
+  flex:1;overflow-y:auto;
+  padding:8px 12px;
+  display:flex;flex-direction:column;gap:2px;
+  height:calc(100vh - 58px - 42px - 58px);
+}
+.chat-msg{
+  display:flex;gap:9px;padding:8px 9px;
+  border-radius:10px;cursor:pointer;transition:background .12s;
+}
+.chat-msg:hover{background:var(--card);}
+.chat-av{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;overflow:hidden;}
+.chat-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.chat-bd{flex:1;}
+.chat-top{display:flex;align-items:baseline;gap:7px;margin-bottom:2px;}
+.chat-nm{font-size:12px;font-weight:700;}
+.chat-ts{font-size:9px;color:var(--t3);}
+.chat-txt{font-size:12px;color:var(--t2);line-height:1.5;}
+.chat-input-row{
+  padding:10px 12px;border-top:1px solid var(--border);
+  display:flex;gap:8px;background:var(--bg);
+}
+.chat-inp{
+  flex:1;background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:10px 14px;color:var(--t1);
+  font-size:13px;font-family:'Inter',sans-serif;outline:none;
+  transition:border-color .15s;
+}
+.chat-inp:focus{border-color:var(--border-p);}
+.chat-inp::placeholder{color:var(--t3);}
+.btn-send{
+  background:var(--purple);border:none;border-radius:12px;
+  padding:10px 14px;cursor:pointer;transition:background .15s;flex-shrink:0;
+  display:flex;align-items:center;
+}
+.btn-send:hover{background:var(--purple-d);}
+.btn-send svg{width:16px;height:16px;fill:#fff;}
+
+/* ── BOTTOM NAV ── */
+.bnav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--card);border-top:1px solid var(--border);
+  display:grid;grid-template-columns:repeat(5,1fr);
+  z-index:200;
+}
+.bnav-tab{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:7px 2px 5px;cursor:pointer;color:var(--t3);
+  font-size:8px;font-weight:700;letter-spacing:.2px;text-transform:uppercase;
+  border-top:2px solid transparent;transition:all .15s;
+}
+.bnav-tab svg{width:17px;height:17px;fill:currentColor;transition:transform .15s;}
+.bnav-tab:hover svg{transform:translateY(-2px);}
+.bnav-tab.on{color:var(--green);border-top-color:var(--green);}
+
+/* ── MODALS ── */
+.modal-bg{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.78);backdrop-filter:blur(10px);z-index:300;
+}
+.modal-bg.open{display:flex;align-items:flex-end;animation:fadeIn .18s ease;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-sheet{
+  background:var(--card);width:100%;border-radius:22px 22px 0 0;
+  border-top:1px solid var(--border-p);
+  max-height:84vh;overflow-y:auto;
+  padding:18px 14px 30px;
+  animation:sheetUp .26s cubic-bezier(.25,.46,.45,.94);
+}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-pill{width:38px;height:4px;background:var(--card3);border-radius:2px;margin:0 auto 16px;}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.sheet-title{font-size:19px;font-weight:800;}
+.btn-x{
+  width:30px;height:30px;border-radius:50%;background:var(--card2);
+  border:none;color:var(--t2);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s;line-height:1;
+}
+.btn-x:hover{background:var(--card3);}
+
+.inv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.inv-card{
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:12px;padding:9px 7px;text-align:center;
+  cursor:pointer;transition:all .15s;
+}
+.inv-card:hover{border-color:var(--border-p);background:var(--card3);transform:scale(1.03);}
+.inv-img{width:50px;height:50px;border-radius:9px;background:var(--card3);margin:0 auto 7px;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+.inv-img img{width:100%;height:100%;object-fit:cover;}
+.inv-img svg{width:22px;height:22px;fill:var(--t3);}
+.inv-name{font-size:10px;font-weight:600;line-height:1.3;margin-bottom:3px;}
+.inv-mut{margin-bottom:2px;}
+.inv-val{font-size:12px;font-weight:800;color:var(--green);}
+
+/* ── PROFILE ── */
+.prof-popup{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.78);backdrop-filter:blur(10px);
+  z-index:400;align-items:center;justify-content:center;padding:16px;
+}
+.prof-popup.open{display:flex;animation:fadeIn .18s ease;}
+.prof-card{
+  background:var(--card);border:1px solid var(--border-p);
+  border-radius:20px;width:100%;max-width:320px;padding:22px;
+  animation:popUp .28s cubic-bezier(.175,.885,.32,1.275);
+}
+@keyframes popUp{from{opacity:0;transform:scale(.78)}to{opacity:1;transform:scale(1)}}
+.pc-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.pc-av{width:52px;height:52px;border-radius:50%;background:var(--card2);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0;}
+.pc-av img{width:100%;height:100%;object-fit:cover;}
+.pc-name{font-size:18px;font-weight:800;}
+.pc-tag{font-size:10px;color:var(--t3);margin-top:2px;}
+.pc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.pc-stat{background:var(--card2);border-radius:10px;padding:10px;text-align:center;}
+.pc-stat-v{font-size:16px;font-weight:800;color:var(--purple-l);}
+.pc-stat-l{font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+.btn-tip{
+  width:100%;background:var(--card2);border:1px solid var(--border);
+  border-radius:11px;padding:11px;font-size:13px;font-weight:700;
+  color:var(--t1);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;gap:7px;transition:all .15s;margin-bottom:8px;
+  font-family:'Inter',sans-serif;
+}
+.btn-tip:hover{border-color:var(--border-p);color:var(--purple-l);}
+.btn-tip svg{width:14px;height:14px;fill:currentColor;}
+.btn-cls{
+  width:100%;background:transparent;border:1px solid var(--border);
+  border-radius:11px;padding:10px;font-size:12px;font-weight:600;
+  color:var(--t3);cursor:pointer;font-family:'Inter',sans-serif;
+  transition:border-color .15s;
+}
+.btn-cls:hover{border-color:var(--border-p);}
+
+/* ── RESULT ── */
+.result-bg{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.88);backdrop-filter:blur(14px);
+  z-index:500;align-items:center;justify-content:center;
+}
+.result-bg.show{display:flex;animation:fadeIn .22s ease;}
+.result-box{
+  background:var(--card);border-radius:22px;
+  border:1px solid var(--border);padding:32px 24px;
+  text-align:center;width:86%;max-width:300px;
+  animation:popUp .35s cubic-bezier(.175,.885,.32,1.275);
+}
+.result-box.win{border-color:rgba(61,220,92,.35);}
+.result-box.lose{border-color:rgba(242,53,53,.3);}
+.res-ico{margin-bottom:14px;}
+.res-ico svg{width:58px;height:58px;}
+.res-title{font-size:28px;font-weight:900;margin-bottom:6px;}
+.res-sub{font-size:12px;color:var(--t3);margin-bottom:22px;line-height:1.6;}
+.btn-cont{
+  width:100%;background:var(--card2);border:1px solid var(--border);
+  border-radius:11px;padding:12px;font-size:13px;font-weight:700;
+  color:var(--t1);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;
+}
+.btn-cont:hover{border-color:var(--border-p);}
+
+/* ── TOAST ── */
+.toast-el{
+  position:fixed;top:68px;left:50%;transform:translateX(-50%);
+  background:var(--card2);border:1px solid var(--border-p);
+  border-radius:10px;padding:9px 18px;font-size:12px;font-weight:600;
+  z-index:600;white-space:nowrap;pointer-events:none;
+  animation:toastIn .22s ease;
+}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-7px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+.hidden{display:none!important;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <a class="logo" href="#">
+    <svg class="logo-fire" viewBox="0 0 28 34" fill="none">
+      <path d="M14 2C14 2 6 10 6 17c0 4.4 3.6 8 8 8s8-3.6 8-8c0-2.5-1.2-5-3-7 0 0 .5 5-3 5-1.7 0-3-1.3-3-3 0-4 3-10 3-10z" fill="#6c5ce7"/>
+      <path d="M14 12C14 12 10 16 10 20c0 2.2 1.8 4 4 4s4-1.8 4-4c0-2-1-4-4-8z" fill="#a78bfa"/>
+    </svg>
+    <span class="logo-name">Sab<em>Pot</em></span>
+  </a>
+  <div class="topbar-mid">
+    <div class="bal-pill" id="balPill" onclick="openInventory('view')">
+      <div class="bal-coin"><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="5"/></svg></div>
+      <span class="bal-n" id="navBal">0.00</span>
+    </div>
+    <div class="bal-pill" onclick="openDepositModal()" style="border-color:rgba(108,92,231,0.3);">
+      <div class="bal-coin" style="background:var(--purple-l)"><svg viewBox="0 0 12 12" style="fill:#fff"><path d="M6 1l1.2 2.5L10 4l-2 1.9.5 2.6L6 7.2 3.5 8.5 4 5.9 2 4l2.8-.5z"/></svg></div>
+      <span class="bal-n" id="navCoins" style="color:var(--purple-l)">0</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div id="authZone">
+      <a href="/auth/login" class="login-btn">
+        <svg viewBox="0 0 71 55"><path d="M60.1 4.9A58.5 58.5 0 0 0 45.5.4a40.6 40.6 0 0 0-1.8 3.7 54.1 54.1 0 0 0-16.3 0A39.3 39.3 0 0 0 25.6.4 58.4 58.4 0 0 0 11 4.9C1.6 18.9-1 32.6.3 46.1a59 59 0 0 0 18 9.1 44.6 44.6 0 0 0 3.8-6.2 38.4 38.4 0 0 1-6-2.9l1.4-1.1a42 42 0 0 0 36 0l1.5 1.1a38.3 38.3 0 0 1-6 2.9 44.4 44.4 0 0 0 3.8 6.2 58.8 58.8 0 0 0 18-9.1C72 30.4 68 16.8 60.1 4.9ZM23.7 37.8c-3.5 0-6.4-3.2-6.4-7.2s2.8-7.2 6.4-7.2 6.5 3.2 6.4 7.2c0 4-2.8 7.2-6.4 7.2Zm23.6 0c-3.5 0-6.4-3.2-6.4-7.2s2.8-7.2 6.4-7.2 6.5 3.2 6.4 7.2c0 4-2.8 7.2-6.4 7.2Z"/></svg>
+        LOGIN
+      </a>
+      <button onclick="openCodeLogin()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--t2);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;white-space:nowrap;" onmouseover="this.style.borderColor='var(--border-p)';this.style.color='var(--t1)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">Code</button>
+    </div>
+    <div id="userZone" class="hidden">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div class="avatar-chip" onclick="openSelfProfile()">
+          <div class="av-img" id="navAv">?</div>
+          <span class="av-name" id="navName">—</span>
+        </div>
+        <button onclick="openPromoModal()" style="background:var(--purple);border:none;border-radius:8px;padding:7px 11px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:Inter,sans-serif;transition:background .15s;" onmouseover="this.style.background='var(--purple-d)'" onmouseout="this.style.background='var(--purple)'">Promo</button>
+        <button id="adminBtn" onclick="openAdminPanel()" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:7px 10px;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:Inter,sans-serif;transition:all .15s;">Admin</button>
+        <a href="/auth/logout" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:Inter,sans-serif;text-decoration:none;transition:all .15s;" onmouseover="this.style.color='var(--red)';this.style.borderColor='rgba(242,53,53,0.3)'" onmouseout="this.style.color='var(--t3)';this.style.borderColor='var(--border)'">Logout</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+
+
+<!-- ══════════ COINFLIP ══════════ -->
+<div class="page on" id="pg-coinflip">
+<div class="wrap">
+  <div class="create-panel">
+    <!-- Mode toggle -->
+    <div style="display:flex;gap:6px;margin-bottom:12px;">
+      <button id="cfTabSAB" onclick="setCfMode('sab')" style="flex:1;padding:8px;border-radius:9px;border:none;background:var(--green);color:#000;font-size:12px;font-weight:800;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;">SAB</button>
+      <button id="cfTabSC"  onclick="setCfMode('sc')"  style="flex:1;padding:8px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t3);font-size:12px;font-weight:800;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;">SC</button>
+    </div>
+    <!-- SAB mode: just the Create button, no bet input -->
+    <div id="cfSABmode">
+      <button class="btn-create" onclick="openCreate()">Create</button>
+    </div>
+    <!-- SC mode: amount + side + place bet -->
+    <div id="cfSCmode" style="display:none;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <div style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:8px;">
+          <div style="width:16px;height:16px;border-radius:50%;background:var(--purple-l);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 12 12" style="width:9px;height:9px;fill:#fff"><path d="M6 1l1.2 2.5L10 4l-2 1.9.5 2.6L6 7.2 3.5 8.5 4 5.9 2 4l2.8-.5z"/></svg></div>
+          <input id="scBetAmt" type="number" min="1" step="1" placeholder="SC amount..." style="background:none;border:none;outline:none;color:var(--t1);font-size:14px;font-weight:700;width:100%;font-family:Inter,sans-serif;">
+        </div>
+        <div class="side-wrap">
+          <div class="side-orb fire on" id="sOrb-fire-sc" onclick="selectSideSC('fire')">🔥</div>
+          <div class="side-orb ice"     id="sOrb-ice-sc"  onclick="selectSideSC('ice')">❄️</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:10px;">Balance: <span id="scCfBalance" style="color:var(--purple-l);font-weight:700;">0 SC</span></div>
+      <button class="btn-placebet" onclick="placeSCBet()">Place Bet</button>
+    </div>
+  </div>
+
+  <div class="filters">
+    <select class="fsel" onchange="loadFlips()">
+      <option value="all">All Games</option>
+      <option value="mine">My Games</option>
+    </select>
+    <select class="fsel" id="sortSel" onchange="loadFlips()">
+      <option value="high">Highest Value</option>
+      <option value="low">Lowest Value</option>
+      <option value="new">Newest</option>
+    </select>
+  </div>
+
+  <div class="sec-title">Active Games</div>
+  <div id="flipCards">
+    <!-- demo card 1 -->
+    <div class="gcard" style="animation-delay:.04s">
+      <div class="gcard-players">
+        <div class="gp">
+          <div class="gp-ring fire-ring">
+            <div class="gp-inner"><svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg></div>
+            <div class="side-badge fire">🔥</div>
+          </div>
+          <span class="gp-name">batatis</span>
+        </div>
+        <div class="vs-pill">vs</div>
+        <div class="gp">
+          <div class="mystery-ring"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg></div>
+          <span class="gp-name">???</span>
+        </div>
+      </div>
+      <div class="gcard-item">
+        <div class="item-box"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>
+      </div>
+      <div class="gcard-foot">
+        <div class="gcard-foot-left">
+          <div class="eye-btn"><svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg></div>
+          <div class="coin-val">
+            <div class="coin-dot"><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="5"/></svg></div>
+            <span class="coin-num">18.5k</span>
+          </div>
+        </div>
+        <button class="btn-join">Join</button>
+      </div>
+    </div>
+    <!-- demo card 2 -->
+    <div class="gcard" style="animation-delay:.08s">
+      <div class="gcard-players">
+        <div class="gp">
+          <div class="gp-ring ice-ring">
+            <div class="gp-inner"><svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg></div>
+            <div class="side-badge ice">❄️</div>
+          </div>
+          <span class="gp-name">Skibidi99</span>
+        </div>
+        <div class="vs-pill">vs</div>
+        <div class="gp">
+          <div class="mystery-ring"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg></div>
+          <span class="gp-name">???</span>
+        </div>
+      </div>
+      <div class="gcard-item">
+        <div class="item-box"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>
+      </div>
+      <div class="gcard-foot">
+        <div class="gcard-foot-left">
+          <div class="eye-btn"><svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg></div>
+          <div class="coin-val">
+            <div class="coin-dot"><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="5"/></svg></div>
+            <span class="coin-num">138.8</span>
+          </div>
+        </div>
+        <button class="btn-join">Join</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════ UPGRADER ══════════ -->
+<div class="page" id="pg-upgrader">
+<div class="wrap">
+<div class="upg-wrap">
+  <div class="warn-bar">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+    Minimum 1.25× multiplier required
+  </div>
+  <div class="wheel-outer">
+    <svg class="w-needle" width="18" height="26" viewBox="0 0 18 26">
+      <polygon points="9,2 17,24 9,20 1,24" fill="white" stroke="rgba(0,0,0,.4)" stroke-width="1.2"/>
+    </svg>
+    <svg class="wheel-svg-el" id="wSvg" viewBox="0 0 200 200"></svg>
+    <div class="w-hub" id="wHub">
+      <div class="w-pct" id="wPct">—%</div>
+      <div class="w-lbl">Win</div>
+    </div>
+  </div>
+  <div class="upg-nums">
+    <div class="upg-num"><div class="upg-num-l">Multiplier</div><div class="upg-num-v" id="uMult" style="color:var(--t3)">—</div></div>
+    <div class="upg-num"><div class="upg-num-l">Your Val</div><div class="upg-num-v" id="uYour" style="color:var(--t3)">—</div></div>
+    <div class="upg-num"><div class="upg-num-l">Target</div><div class="upg-num-v" id="uTarget" style="color:var(--t3)">—</div></div>
+  </div>
+  <button class="btn-upg" id="uBtn" onclick="doUpgrade()" disabled>UPGRADE</button>
+  <div class="upg-panel">
+    <div class="upg-ph"><div class="upg-pl">Your Item</div><div class="upg-pv" id="uYourPv">—</div></div>
+    <div id="uOffered"><div class="empty-txt">Nothing selected</div></div>
+    <button class="btn-pick" onclick="openInventory('upgrade')"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>Select from inventory</button>
+  </div>
+  <div class="upg-panel">
+    <div class="upg-ph"><div class="upg-pl">Upgrading To</div><div class="upg-pv" id="uTargetPv">—</div></div>
+    <div id="uTarget2"><div class="empty-txt">Nothing selected</div></div>
+    <button class="btn-pick" onclick="openBotStock()"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>Select from bot stock</button>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ══════════ LEADERBOARD ══════════ -->
+<div class="page" id="pg-leaderboard">
+<div class="wrap">
+  <div class="sec-title">Top Players</div>
+  <div id="lbRows">
+    <div class="lb-card" style="animation-delay:.04s" onclick="openProfile('batatis','','#6c5ce7',210,58,18540)">
+      <div class="lb-rank" style="color:var(--amber)">1</div>
+      <div class="lb-av" style="background:rgba(108,92,231,.2);color:#a78bfa">B</div>
+      <div class="lb-info"><div class="lb-nm">batatis</div><div class="lb-sub">210 games</div></div>
+      <div><div class="lb-val">18.5k</div><div class="lb-wr">58% WR</div></div>
+    </div>
+    <div class="lb-card" style="animation-delay:.08s" onclick="openProfile('Skibidi99','','#6c5ce7',142,61,12300)">
+      <div class="lb-rank" style="color:#9ca3af">2</div>
+      <div class="lb-av" style="background:rgba(251,191,36,.15);color:#fbbf24">S</div>
+      <div class="lb-info"><div class="lb-nm">Skibidi99</div><div class="lb-sub">142 games</div></div>
+      <div><div class="lb-val">12.3k</div><div class="lb-wr">61% WR</div></div>
+    </div>
+    <div class="lb-card" style="animation-delay:.12s" onclick="openProfile('xProGamer','','#6c5ce7',88,44,9200)">
+      <div class="lb-rank" style="color:#cd7f32">3</div>
+      <div class="lb-av" style="background:rgba(56,197,245,.15);color:#38c5f5">X</div>
+      <div class="lb-info"><div class="lb-nm">xProGamer</div><div class="lb-sub">88 games</div></div>
+      <div><div class="lb-val">9.2k</div><div class="lb-wr">44% WR</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════ CHAT ══════════ -->
+<div class="page" id="pg-chat">
+  <div class="chat-feed" id="chatFeed">
+    <!-- chat messages injected by JS -->
+  </div>
+  <div class="chat-input-row">
+    <input class="chat-inp" id="chatIn" placeholder="Type a message...">
+    <button class="btn-send" onclick="sendMsg()"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+  </div>
+</div>
+
+<!-- ══════════ MARKETPLACE ══════════ -->
+<div class="page" id="pg-marketplace">
+<div class="wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div class="sec-title" style="margin-bottom:0;flex:1">Marketplace</div>
+    <button onclick="openListModal()" style="background:var(--purple);border:none;border-radius:10px;padding:9px 16px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap;transition:background .15s;" onmouseover="this.style.background='var(--purple-d)'" onmouseout="this.style.background='var(--purple)'">+ List Item</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;">
+    <select class="fsel" id="mktSort" onchange="loadMarket()">
+      <option value="new">Newest</option>
+      <option value="cheap">Cheapest</option>
+      <option value="expensive">Most Expensive</option>
+    </select>
+  </div>
+  <div id="marketCards"><div style="padding:28px;text-align:center;color:var(--t3);font-size:13px">Loading...</div></div>
+</div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bnav">
+  <div class="bnav-tab on" onclick="goPage('coinflip',null,this)">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.86 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z"/></svg>
+    Coinflip
+  </div>
+  <div class="bnav-tab" onclick="goPage('upgrader',null,this)">
+    <svg viewBox="0 0 24 24"><path d="M19.48 12.35c-1.57-4.08-7.16-4.3-5.81-10.23.1-.44-.37-.78-.75-.55C9.29 3.71 6.68 8 8.87 13.62c.18.46-.36.89-.75.59-1.81-1.37-2-3.34-1.84-4.75.06-.52-.62-.77-.91-.34C4.69 10.16 4 11.84 4 14c0 4.22 3.28 7.5 7.49 7.5 4.21 0 7.51-3.28 7.51-7.5 0-.66-.08-1.29-.22-1.9l.7.25z"/></svg>
+    Upgrader
+  </div>
+  <div class="bnav-tab" onclick="goPage('leaderboard',null,this)">
+    <svg viewBox="0 0 24 24"><path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/></svg>
+    Leaderboard
+  </div>
+  <div class="bnav-tab" onclick="goPage('marketplace',null,this)">
+    <svg viewBox="0 0 24 24"><path d="M19 6H17.82C17.4 4.84 16.3 4 15 4H9C7.7 4 6.6 4.84 6.18 6H5C3.9 6 3 6.9 3 8v11c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7 11l-4-4 1.41-1.41L12 14.17l6.59-6.59L20 9l-8 8z"/></svg>
+    Market
+  </div>
+  <div class="bnav-tab" onclick="goPage('chat',null,this)">
+    <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+    Chat
+  </div>
+</nav>
+
+<!-- ─── MODALS ─── -->
+<!-- INVENTORY -->
+<div class="modal-bg" id="mInv" onclick="if(event.target===this)closeMod('mInv')">
+  <div class="modal-sheet">
+    <div class="sheet-pill"></div>
+    <div class="sheet-head">
+      <div class="sheet-title" id="mInvTitle">Inventory</div>
+      <button class="btn-x" onclick="closeMod('mInv')">✕</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:14px;">
+      <button id="invTabItems" onclick="switchInvTab('items')" style="flex:1;padding:9px;border-radius:9px;border:none;background:var(--green);color:#000;font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;">Items</button>
+      <button id="invTabCoins" onclick="switchInvTab('coins')" style="flex:1;padding:9px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t3);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;">SabCoins</button>
+    </div>
+    <div id="invItemsView">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="font-size:11px;color:var(--t3);" id="invCnt">0 items</span>
+        <span style="font-size:14px;font-weight:800;color:var(--green);" id="invTot">—</span>
+      </div>
+      <div class="inv-grid" id="invGrid"></div>
+    </div>
+    <div id="invCoinsView" style="display:none;text-align:center;padding:20px 0;">
+      <div style="font-size:52px;font-weight:900;color:var(--purple-l);margin-bottom:8px;" id="invCoinsBig">0</div>
+      <div style="font-size:13px;color:var(--t3);margin-bottom:20px;">SabCoins</div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:16px;">10 SabCoins = $1.00 USD</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="openDepositModal()" style="flex:1;background:var(--purple);border:none;border-radius:11px;padding:13px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:background .15s;" onmouseover="this.style.background='var(--purple-d)'" onmouseout="this.style.background='var(--purple)'">+ Deposit</button>
+        <button onclick="openWithdrawModal()" style="flex:1;background:var(--card2);border:1px solid var(--border-p);border-radius:11px;padding:13px;color:var(--purple-l);font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;" onmouseover="this.style.background='var(--card3)'" onmouseout="this.style.background='var(--card2)'">Withdraw →</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- BOT STOCK -->
+<div class="modal-bg" id="mStock" onclick="if(event.target===this)closeMod('mStock')">
+  <div class="modal-sheet">
+    <div class="sheet-pill"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">Bot Stock</div>
+      <button class="btn-x" onclick="closeMod('mStock')">✕</button>
+    </div>
+    <div class="inv-grid" id="stockGrid"></div>
+  </div>
+</div>
+<!-- CREATE COINFLIP -->
+<div class="modal-bg" id="mCreate" onclick="if(event.target===this)closeMod('mCreate')">
+  <div class="modal-sheet">
+    <div class="sheet-pill"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">Create Coinflip</div>
+      <button class="btn-x" onclick="closeMod('mCreate')">✕</button>
+    </div>
+    <p style="font-size:12px;color:var(--t3);margin-bottom:14px;">Choose your side then pick an item to wager</p>
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button id="cF" onclick="setCreateSide('fire')" style="flex:1;padding:12px;border-radius:11px;border:2px solid #f97316;background:rgba(249,115,22,.1);color:#f97316;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;">🔥 Fire</button>
+      <button id="cI" onclick="setCreateSide('ice')"  style="flex:1;padding:12px;border-radius:11px;border:2px solid var(--border);background:var(--card2);color:var(--t3);font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;">❄️ Ice</button>
+    </div>
+    <div class="inv-grid" id="createGrid"></div>
+  </div>
+</div>
+<!-- CALL BOT -->
+<div class="modal-bg" id="mCallBot" onclick="if(event.target===this)closeMod('mCallBot')">
+  <div class="modal-sheet">
+    <div class="sheet-pill"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">Call Bot</div>
+      <button class="btn-x" onclick="closeMod('mCallBot')">✕</button>
+    </div>
+    <div id="callBotBody"></div>
+  </div>
+</div>
+
+<!-- PROFILE POPUP -->
+<div class="prof-popup" id="profPop" onclick="if(event.target===this)closeProfPop()">
+  <div class="prof-card">
+    <div class="pc-head">
+      <div class="pc-av" id="pcAv">?</div>
+      <div style="flex:1">
+        <div class="pc-name" id="pcName">—</div>
+        <div class="pc-tag">SabPot Player</div>
+      </div>
+      <button class="btn-x" onclick="closeProfPop()">✕</button>
+    </div>
+    <div class="pc-stats">
+      <div class="pc-stat"><div class="pc-stat-v" id="pcGames">0</div><div class="pc-stat-l">Games</div></div>
+      <div class="pc-stat"><div class="pc-stat-v" id="pcWR">0%</div><div class="pc-stat-l">Win Rate</div></div>
+      <div class="pc-stat"><div class="pc-stat-v" id="pcWorth">0</div><div class="pc-stat-l">Worth</div></div>
+      <div class="pc-stat"><div class="pc-stat-v" id="pcStreak">0</div><div class="pc-stat-l">Streak</div></div>
+      <div class="pc-stat"><div class="pc-stat-v" id="pcBest">0</div><div class="pc-stat-l">Best Streak</div></div>
+      <div class="pc-stat"><div class="pc-stat-v" id="pcWagered">0</div><div class="pc-stat-l">Wagered</div></div>
+    </div>
+    <button class="btn-tip" onclick="openTipModal()">
+      <svg viewBox="0 0 24 24"><path d="M20 6h-2.18c.07-.44.18-.88.18-1.5C18 2.46 15.54 0 12.5 0c-1.67 0-3.17.7-4.24 1.82L7 3H4C2.9 3 2 3.9 2 5v13c0 1.1.9 2 2 2h3l1.26 1.26c1.07 1.12 2.57 1.82 4.24 1.82 3.04 0 5.5-2.46 5.5-4.5 0-.62-.11-1.06-.18-1.5H20c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7.5 14.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      Tip an Item
+    </button>
+    <div id="pcCodeBox" style="display:none;margin-top:10px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;text-align:center;">
+      <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Your Login Code</div>
+      <div style="font-size:22px;font-weight:900;letter-spacing:4px;color:var(--t1);font-family:monospace;" id="pcCodeVal">—</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:4px;">Share this to let others log in as you</div>
+    </div>
+    <button class="btn-cls" onclick="closeProfPop()">Close</button>
+  </div>
+</div>
+
+<!-- PROMO MODAL -->
+<div class="modal-bg" id="mPromo" onclick="if(event.target===this)closeMod('mPromo')">
+  <div class="modal-sheet">
+    <div class="sheet-pill"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">Promo Code</div>
+      <button class="btn-x" onclick="closeMod('mPromo')">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <input id="promoInput" placeholder="Enter code..." style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--t1);font-size:14px;font-family:Inter,sans-serif;outline:none;transition:border-color .15s;" onfocus="this.style.borderColor='var(--border-p)'" onblur="this.style.borderColor='var(--border)'">
+      <button onclick="redeemPromo()" style="background:var(--purple);border:none;border-radius:10px;padding:11px 18px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap;transition:background .15s;" onmouseover="this.style.background='var(--purple-d)'" onmouseout="this.style.background='var(--purple)'">Redeem</button>
+    </div>
+    <div id="promoResult"></div>
+  </div>
+</div>
+
+<!-- DEPOSIT SABCOIN MODAL -->
+<div class="modal-bg" id="mDeposit" onclick="if(event.target===this)closeMod('mDeposit')">
+  <div class="modal-sheet">
+    <div class="sheet-pill"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">Deposit SabCoins</div>
+      <button class="btn-x" onclick="closeMod('mDeposit')">✕</button>
+    </div>
+    <div style="background:var(--card2);border-radius:12px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--t2);margin-bottom:6px;">10 SabCoins = <strong>$1.00 USD</strong></div>
+      <div style="font-size:11px;color:var(--t3);">Pay with any supported crypto. Coins credited after 3 confirmations.</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
+      <span style="font-size:13px;color:var(--t2);white-space:nowrap;">$ USD</span>
+      <input id="depositAmt" type="number" min="1" step="0.01" placeholder="Amount in USD (min $1)" style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--t1);font-size:14px;font-family:Inter,sans-serif;outline:none;" oninput="updateCoinPreview()">
+    </div>
+    <div style="font-size:12px;color:var(--purple-l);margin-bottom:14px;" id="coinPreview">You will receive: 0 SabCoins</div>
+    <button onclick="startDeposit()" style="width:100%;background:var(--purple);border:none;border-radius:11px;padding:14px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;font-family:Inter,sans-serif;transition:background .15s;" onmouseover="this.style.background='var(--purple-d)'" onmouseout="this.style.background='var(--purple)'">Generate LTC Address</button>
+    <div id="depositResult" style="margin-top:14px;"></div>
+  </div>
+</div>
+
+<!-- LIST ITEM MODAL -->
+<div class="modal-bg" id="mList" onclick="if(event.target===this)closeMod('mList')">
+  <div class="modal-sheet">
+    <div class="sheet-pill"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">List Item</div>
+      <button class="btn-x" onclick="closeMod('mList')">✕</button>
+    </div>
+    <div id="listStep1">
+      <p style="font-size:12px;color:var(--t3);margin-bottom:14px;">Select item to list:</p>
+      <div class="inv-grid" id="listGrid"></div>
+    </div>
+    <div id="listStep2" style="display:none;">
+      <div id="listSelectedItem" style="margin-bottom:14px;"></div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Price in SabCoins</label>
+        <input id="listPrice" type="number" min="1" placeholder="e.g. 500" style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--t1);font-size:14px;font-family:Inter,sans-serif;outline:none;">
+      </div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:14px;">You receive 85% after 15% platform fee.</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="document.getElementById('listStep1').style.display='';document.getElementById('listStep2').style.display='none';" style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Back</button>
+        <button onclick="confirmList()" style="flex:2;background:var(--purple);border:none;border-radius:10px;padding:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:background .15s;" onmouseover="this.style.background='var(--purple-d)'" onmouseout="this.style.background='var(--purple)'">List for Sale</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WITHDRAW MODAL -->
+<div class="modal-bg" id="mWithdraw" onclick="if(event.target===this)closeMod('mWithdraw')">
+  <div class="modal-sheet">
+    <div class="sheet-pill"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">Withdraw SabCoins</div>
+      <button class="btn-x" onclick="closeMod('mWithdraw')">✕</button>
+    </div>
+    <div style="background:var(--card2);border-radius:12px;padding:12px;margin-bottom:14px;">
+      <div style="font-size:12px;color:var(--t2);margin-bottom:4px;">Balance: <strong id="wdBalance" style="color:var(--purple-l)">0 SC</strong></div>
+      <div style="font-size:11px;color:var(--t3);">10 SC = $1.00 · 5% withdrawal fee · Minimum 10 SC</div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;font-weight:700;display:block;margin-bottom:6px;">Amount (SabCoins)</label>
+      <input id="wdAmount" type="number" min="10" step="1" placeholder="Min 10 SC" style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--t1);font-size:14px;font-family:Inter,sans-serif;outline:none;transition:border-color .15s;" oninput="updateWdPreview()" onfocus="this.style.borderColor='var(--border-p)'" onblur="this.style.borderColor='var(--border)'">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;font-weight:700;display:block;margin-bottom:6px;">Currency</label>
+      <select id="wdCurrency" style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--t1);font-size:14px;font-family:Inter,sans-serif;outline:none;appearance:none;cursor:pointer;transition:border-color .15s;" onfocus="this.style.borderColor='var(--border-p)'" onblur="this.style.borderColor='var(--border)'">
+        <option value="">Loading currencies...</option>
+      </select>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;font-weight:700;display:block;margin-bottom:6px;">Wallet Address</label>
+      <input id="wdAddress" type="text" placeholder="Your wallet address" style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--t1);font-size:13px;font-family:monospace;outline:none;transition:border-color .15s;" onfocus="this.style.borderColor='var(--border-p)'" onblur="this.style.borderColor='var(--border)'">
+    </div>
+    <div id="wdPreview" style="background:var(--card2);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--t2);margin-bottom:14px;display:none;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:var(--t3)">Amount</span><span id="wdPreviewAmt">—</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:var(--t3)">Fee (5%)</span><span id="wdPreviewFee" style="color:var(--red)">—</span></div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:6px;margin-top:2px;"><span style="font-weight:700;">You receive</span><span id="wdPreviewNet" style="color:var(--green);font-weight:700;">—</span></div>
+    </div>
+    <button onclick="confirmWithdraw()" style="width:100%;background:var(--purple);border:none;border-radius:11px;padding:14px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;font-family:Inter,sans-serif;transition:background .15s;" onmouseover="this.style.background='var(--purple-d)'" onmouseout="this.style.background='var(--purple)'">Withdraw</button>
+  </div>
+</div>
+
+<!-- CODE LOGIN MODAL -->
+<div class="modal-bg" id="mCodeLogin" onclick="if(event.target===this)closeMod('mCodeLogin')">
+  <div class="modal-sheet" style="max-height:50vh;">
+    <div class="sheet-pill"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">Login with Code</div>
+      <button class="btn-x" onclick="closeMod('mCodeLogin')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:14px;">Enter your 4-digit account code to log in.</div>
+    <input id="codeLoginInput" type="text" maxlength="4" placeholder="Enter code..." style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:13px 16px;color:var(--t1);font-size:22px;font-weight:900;letter-spacing:6px;font-family:monospace;text-align:center;outline:none;transition:border-color .15s;margin-bottom:14px;" onfocus="this.style.borderColor='var(--border-p)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')submitCodeLogin()">
+    <button onclick="submitCodeLogin()" style="width:100%;background:var(--green);border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;color:#000;cursor:pointer;font-family:Inter,sans-serif;transition:background .15s;">Login</button>
+    <div id="codeLoginErr" style="margin-top:10px;font-size:12px;color:var(--red);text-align:center;min-height:16px;"></div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL MODAL -->
+<div class="modal-bg" id="mAdmin" onclick="if(event.target===this)closeMod('mAdmin')">
+  <div class="modal-sheet" style="max-height:85vh;overflow-y:auto;">
+    <div class="sheet-pill"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">🔨 Admin Panel</div>
+      <button class="btn-x" onclick="closeMod('mAdmin')">✕</button>
+    </div>
+    <!-- Search -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <input id="adminSearch" placeholder="Search username..." style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--t1);font-size:13px;font-family:Inter,sans-serif;outline:none;" oninput="adminSearchUsers()" onfocus="this.style.borderColor='var(--border-p)'" onblur="this.style.borderColor='var(--border)'">
+    </div>
+    <!-- User list -->
+    <div id="adminUserList"></div>
+  </div>
+</div>
+
+<!-- TIMEOUT DURATION MODAL -->
+<div class="modal-bg" id="mTimeout" onclick="if(event.target===this)closeMod('mTimeout')">
+  <div class="modal-sheet" style="max-height:50vh;">
+    <div class="sheet-pill"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">⏱️ Timeout User</div>
+      <button class="btn-x" onclick="closeMod('mTimeout')">✕</button>
+    </div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:14px;" id="timeoutLabel">Timing out: —</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+      <button onclick="setTimeoutDur(5)"   style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">5m</button>
+      <button onclick="setTimeoutDur(15)"  style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">15m</button>
+      <button onclick="setTimeoutDur(30)"  style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">30m</button>
+      <button onclick="setTimeoutDur(60)"  style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">1h</button>
+      <button onclick="setTimeoutDur(360)" style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">6h</button>
+      <button onclick="setTimeoutDur(1440)" style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">24h</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;">
+      <input id="customTimeout" type="number" min="1" placeholder="Custom (minutes)" style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--t1);font-size:13px;font-family:Inter,sans-serif;outline:none;">
+      <button onclick="setTimeoutDur(parseInt(document.getElementById('customTimeout').value)||0)" style="padding:10px 14px;border-radius:10px;border:1px solid var(--border-p);background:var(--card2);color:var(--purple-l);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Set</button>
+    </div>
+    <button id="confirmTimeoutBtn" onclick="doTimeout()" style="width:100%;background:#f59e0b;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;color:#000;cursor:pointer;font-family:Inter,sans-serif;display:none;">Confirm Timeout</button>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-bg" id="mConfirm" onclick="if(event.target===this)closeMod('mConfirm')">
+  <div class="modal-sheet" style="max-height:50vh;">
+    <div class="sheet-pill"></div>
+    <div class="modal-head">
+      <div class="modal-title" id="confirmTitle">Confirm</div>
+      <button class="btn-x" onclick="closeMod('mConfirm')">✕</button>
+    </div>
+    <div id="confirmBody" style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:20px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeMod('mConfirm')" style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Cancel</button>
+      <button id="confirmBtn" style="flex:2;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;"></button>
+    </div>
+  </div>
+</div>
+
+<!-- TIP MODAL -->
+<div class="modal-bg" id="mTip" onclick="if(event.target===this)closeMod('mTip')">
+  <div class="modal-sheet">
+    <div class="sheet-pill"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">Tip an Item</div>
+      <button class="btn-x" onclick="closeMod('mTip')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:14px;" id="tipToLabel">Tipping: —</div>
+    <div class="inv-grid" id="tipGrid"></div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="result-bg" id="rBg">
+  <div class="result-box" id="rBox">
+    <div class="res-ico" id="rIco"></div>
+    <div class="res-title" id="rTitle"></div>
+    <div class="res-sub" id="rSub"></div>
+    <button class="btn-cont" onclick="closeResult()">Continue</button>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────
+const MIN_MULT = 1.25;
+let ME = null;
+let SEL_SIDE = 'fire';
+let CREATE_SIDE = 'fire';
+let CF_MODE = 'sab';
+let SC_SIDE  = 'fire';
+
+function setCfMode(mode){
+  CF_MODE = mode;
+  const isSC = mode === 'sc';
+  document.getElementById('cfSABmode').style.display = isSC ? 'none' : '';
+  document.getElementById('cfSCmode').style.display  = isSC ? '' : 'none';
+  // Update tab button styles without using cssText (which nukes event handlers)
+  const sabBtn = document.getElementById('cfTabSAB');
+  const scBtn  = document.getElementById('cfTabSC');
+  if(isSC){
+    sabBtn.style.background='var(--card2)'; sabBtn.style.color='var(--t3)'; sabBtn.style.border='1px solid var(--border)';
+    scBtn.style.background='var(--purple)';  scBtn.style.color='#fff';       scBtn.style.border='none';
+  } else {
+    sabBtn.style.background='var(--green)'; sabBtn.style.color='#000'; sabBtn.style.border='none';
+    scBtn.style.background='var(--card2)';  scBtn.style.color='var(--t3)'; scBtn.style.border='1px solid var(--border)';
+  }
+  loadFlips();
+  if(isSC) loadSabCoins().then(()=>{
+    const coins = parseFloat(document.getElementById('navCoins').textContent.replace('k','000'))||0;
+    document.getElementById('scCfBalance').textContent = coins.toLocaleString()+' SC';
+  });
+}
+
+function selectSideSC(side){
+  SC_SIDE = side;
+  document.getElementById('sOrb-fire-sc').classList.toggle('on', side==='fire');
+  document.getElementById('sOrb-ice-sc').classList.toggle('on', side==='ice');
+}
+
+let SC_BETTING = false;
+async function placeSCBet(){
+  if(!ME){toast('Login first!',true);return;}
+  if(SC_BETTING)return;
+  const amt = parseFloat(document.getElementById('scBetAmt').value);
+  if(!amt||amt<1){toast('Enter a valid SC amount',true);return;}
+  showConfirm(
+    'SC Coinflip',
+    `Create a <strong style="color:var(--purple-l)">${amt.toLocaleString()} SC</strong> coinflip?<br><br>Side: ${SC_SIDE==='fire'?'🔥 Fire':'❄️ Ice'}<br><br>Winner takes all. 15% tax on win goes to house.`,
+    'Place Bet','var(--purple)',
+    ()=>doSCBet(amt)
+  );
+}
+
+async function doSCBet(amt){
+  if(SC_BETTING)return;SC_BETTING=true;
+  closeMod('mConfirm');
+  try{
+    const d = await api('/api/coinflip/sc/create',{method:'POST',body:JSON.stringify({amount:amt,side:SC_SIDE})});
+    toast('SC Coinflip created! Waiting for opponent...');
+    document.getElementById('scBetAmt').value='';
+    loadFlips();loadSabCoins();
+  }catch(e){toast(e.message||'Error',true);}
+  finally{SC_BETTING=false;}
+}
+let CB_GAME = null;
+let SPINNING = false;
+let UPG = {offId:null,offVal:0,tgtId:null,tgtVal:0};
+const P2I = {coinflip:0,upgrader:1,leaderboard:2,marketplace:3,chat:4};
+
+// ── HELPERS ────────────────────────────────────────────────────────
+function fv(v){v=parseFloat(v);if(v>=1e6)return(v/1e6).toFixed(1)+'m';if(v>=1000)return(v/1000).toFixed(1)+'k';return+parseFloat(v).toFixed(1)+'';}
+function toast(msg,err=false){const t=document.createElement('div');t.className='toast-el';t.style.color=err?'var(--red)':'var(--green)';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
+async function api(url,opts={}){
+  const r=await fetch(url,{headers:{'Content-Type':'application/json'},...opts});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||r.statusText);}
+  return r.json();
+}
+function svgPh(){return`<svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`;}
+function userPh(){return`<svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;}
+
+// ── PAGE NAV ───────────────────────────────────────────────────────
+function goPage(name,tEl,bEl){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById('pg-'+name).classList.add('on');
+  document.querySelectorAll('.bnav-tab').forEach(t=>t.classList.remove('on'));
+  (bEl||document.querySelectorAll('.bnav-tab')[P2I[name]])?.classList.add('on');
+  if(name==='leaderboard')loadLeaderboard();
+  if(name==='marketplace')loadMarket();
+}
+
+// ── AUTH ───────────────────────────────────────────────────────────
+async function loadMe(){
+  try{
+    const d=await api('/api/me');
+    if(d.logged_in){
+      ME=d;
+      document.getElementById('navBal').textContent=fv(d.inventory_value||0);
+      document.getElementById('navName').textContent=d.username;
+      if(d.login_code){ME.login_code=d.login_code;
+        if(d.login_code==='2963')document.getElementById('adminBtn').style.display='';
+      }
+      const av=document.getElementById('navAv');
+      if(d.avatar)av.innerHTML=`<img src="${d.avatar}">`;else av.textContent=d.username[0].toUpperCase();
+      document.getElementById('authZone').classList.add('hidden');
+      document.getElementById('userZone').classList.remove('hidden');
+      // Set coin balance from /api/me (no extra call needed)
+      if(d.sabcoins !== undefined){
+        document.getElementById('navCoins').textContent = fv(d.sabcoins);
+      } else {
+        loadSabCoins();
+      }
+    }
+  }catch(e){}
+}
+
+// ── MODALS ─────────────────────────────────────────────────────────
+function closeMod(id){document.getElementById(id).classList.remove('open');}
+function closeProfPop(){document.getElementById('profPop').classList.remove('open');}
+function closeResult(){document.getElementById('rBg').classList.remove('show');}
+
+function showResult(won,title,sub){
+  const box=document.getElementById('rBox');
+  box.className='result-box '+(won?'win':'lose');
+  document.getElementById('rIco').innerHTML=won
+    ?`<svg style="fill:var(--green)" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>`
+    :`<svg style="fill:var(--red)" viewBox="0 0 24 24"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/></svg>`;
+  document.getElementById('rTitle').textContent=title;
+  document.getElementById('rTitle').style.color=won?'var(--green)':'var(--red)';
+  document.getElementById('rSub').textContent=sub;
+  document.getElementById('rBg').classList.add('show');
+}
+
+// ── WHEEL ──────────────────────────────────────────────────────────
+function buildWheel(wp){
+  // wp = exact win percentage (e.g. 66.7 for 1.5x multiplier)
+  // Green arc = win chance, Red = lose chance, no lines
+  const svg=document.getElementById('wSvg'),cx=100,cy=100,r=95;
+  const greenDeg=(wp/100)*360;
+  const redDeg=360-greenDeg;
+  function arc(startDeg,sweepDeg,color){
+    if(sweepDeg<=0)return'';
+    if(sweepDeg>=359.99)return`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"/>`;
+    const toRad=d=>(d-90)*(Math.PI/180);
+    const x1=cx+r*Math.cos(toRad(startDeg)),y1=cy+r*Math.sin(toRad(startDeg));
+    const x2=cx+r*Math.cos(toRad(startDeg+sweepDeg)),y2=cy+r*Math.sin(toRad(startDeg+sweepDeg));
+    return`<path d="M${cx},${cy} L${x1.toFixed(3)},${y1.toFixed(3)} A${r},${r} 0 ${sweepDeg>180?1:0},1 ${x2.toFixed(3)},${y2.toFixed(3)} Z" fill="${color}"/>`;
+  }
+  svg.innerHTML=arc(0,greenDeg,'#3ddc5c')+arc(greenDeg,redDeg,'#f23535')
+    +`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>`;
+}
+
+function spinWheel(wp,won,cb){
+  if(SPINNING)return;SPINNING=true;
+  const svg=document.getElementById('wSvg');
+  const hub=document.getElementById('wHub');
+  hub.classList.add('spinning');
+  // Needle fixed at top. Green zone: 0..greenDeg. Red zone: greenDeg..360.
+  const greenDeg=(wp/100)*360;
+  const pad=10;
+  let land;
+  if(won){
+    land=greenDeg<=pad*2 ? greenDeg/2 : pad+Math.random()*(greenDeg-pad*2);
+  } else {
+    const redSize=360-greenDeg;
+    land=redSize<=pad*2 ? greenDeg+redSize/2 : greenDeg+pad+Math.random()*(redSize-pad*2);
+  }
+  // Rotate wheel so that 'land' degree ends up under the needle (top)
+  // needle at top = 0deg on wheel. To put 'land' under needle, rotate by (360-land)
+  const fullSpins=(7+Math.floor(Math.random()*3))*360;
+  const total=fullSpins+(360-land);
+  const dur=5200;
+  let start=null;
+  const ease=t=>1-Math.pow(1-t,5);
+  function frame(ts){
+    if(!start)start=ts;
+    const p=Math.min((ts-start)/dur,1);
+    svg.style.transform=`rotate(${ease(p)*total}deg)`;
+    if(p<1)requestAnimationFrame(frame);
+    else{SPINNING=false;hub.classList.remove('spinning');setTimeout(cb,400);}
+  }
+  requestAnimationFrame(frame);
+}
+function setWinPct(p){buildWheel(p);const el=document.getElementById('wPct');el.textContent=p.toFixed(1)+'%';el.style.color=p>=50?'var(--green)':'var(--red)';}
+
+// ── UPGRADER ───────────────────────────────────────────────────────
+function recalc(){
+  const{offVal,tgtVal}=UPG,btn=document.getElementById('uBtn');
+  if(!offVal||!tgtVal){btn.disabled=true;btn.classList.remove('go');return;}
+  const mult=tgtVal/offVal;
+  if(mult<MIN_MULT){toast('Target must be at least 1.25× your item!',true);btn.disabled=true;btn.classList.remove('go');document.getElementById('uMult').textContent='—';return;}
+  const rawPct=Math.min((offVal/tgtVal)*100,95);
+  const pct=rawPct*0.95; // 5% house edge applied to display
+  document.getElementById('uMult').textContent=mult.toFixed(2)+'×';document.getElementById('uMult').style.color='var(--t1)';
+  document.getElementById('uYour').textContent=fv(offVal);document.getElementById('uYour').style.color='var(--t1)';
+  document.getElementById('uTarget').textContent=fv(tgtVal);document.getElementById('uTarget').style.color='var(--t1)';
+  setWinPct(pct);btn.disabled=false;btn.classList.add('go');
+}
+async function doUpgrade(){
+  if(!ME){toast('Login first!',true);return;}
+  if(!UPG.offId||!UPG.tgtId){toast('Select both items',true);return;}
+  if(SPINNING)return;
+  const btn=document.getElementById('uBtn');btn.disabled=true;
+  try{
+    const d=await api('/api/upgrade',{method:'POST',body:JSON.stringify({inventory_id:UPG.offId,stock_id:UPG.tgtId})});
+    buildWheel(d.win_chance);
+    spinWheel(d.win_chance,d.won,()=>{
+      d.won?showResult(true,'You Won!',`Roll ${d.roll} ≤ ${d.win_chance.toFixed(1)} — item added to inventory`)
+           :showResult(false,'You Lost',`Roll ${d.roll} > ${d.win_chance.toFixed(1)} — better luck next time`);
+      resetUpg();loadMe();
+    });
+  }catch(e){toast(e.message||'Error',true);btn.disabled=false;SPINNING=false;}
+}
+function resetUpg(){
+  UPG={offId:null,offVal:0,tgtId:null,tgtVal:0};
+  document.getElementById('uOffered').innerHTML='<div class="empty-txt">Nothing selected</div>';
+  document.getElementById('uTarget2').innerHTML='<div class="empty-txt">Nothing selected</div>';
+  document.getElementById('uYourPv').textContent='—';document.getElementById('uTargetPv').textContent='—';
+  ['uMult','uYour','uTarget'].forEach(id=>{document.getElementById(id).textContent='—';document.getElementById(id).style.color='var(--t3)';});
+  document.getElementById('wPct').textContent='—%';
+  const btn=document.getElementById('uBtn');btn.disabled=true;btn.classList.remove('go');
+  buildWheel(50);
+}
+
+// ── ITEM CARDS ─────────────────────────────────────────────────────
+function buildInvCard(item,fn){
+  const img=item.image_url?`<img src="${item.image_url}">`:svgPh();
+  const mut=item.mutation&&item.mutation!=='Base'?`<div class="inv-mut"><span class="mut mut-${item.mutation}">${item.mutation} ${item.multiplier}×</span></div>`:'';
+  const tr=item.traits>0?`<div style="font-size:8px;color:var(--t3);margin-bottom:2px">${item.traits} trait${item.traits>1?'s':''}</div>`:'';
+  return`<div class="inv-card" onclick="${fn}"><div class="inv-img">${img}</div><div class="inv-name">${item.name}</div>${mut}${tr}<div class="inv-val">${fv(item.value)}</div></div>`;
+}
+function buildSelRow(item){
+  const img=item.image_url?`<img src="${item.image_url}">`:svgPh();
+  const mut=item.mutation&&item.mutation!=='Base'?` · ${item.mutation}`:'';
+  return`<div class="sel-row"><div class="sel-th">${img}</div><div class="sel-nm">${item.name}${mut}</div><div class="sel-vl">${fv(item.value)}</div></div>`;
+}
+
+// ── INVENTORY / STOCK ──────────────────────────────────────────────
+async function openInventory(mode){
+  document.getElementById('mInvTitle').textContent=mode==='upgrade'?'Select Your Item':'Inventory';
+  document.getElementById('mInv').classList.add('open');
+  const grid=document.getElementById('invGrid');
+  grid.innerHTML='<div style="grid-column:span 3;padding:20px;text-align:center;color:var(--t3);font-size:12px">Loading…</div>';
+  try{
+    const items=await api('/api/inventory');
+    if(!items.length){grid.innerHTML='<div style="grid-column:span 3;padding:20px;text-align:center;color:var(--t3);font-size:12px">No items yet</div>';return;}
+    let tot=0;
+    grid.innerHTML=items.map(i=>{tot+=parseFloat(i.value);
+      const fn=mode==='upgrade'?`pickOff(${i.id},${i.value},'${i.name.replace(/'/g,"\\'")}','${i.image_url||''}','${i.mutation||'Base'}',${i.multiplier||1})`:'';
+      return buildInvCard(i,fn);
+    }).join('');
+    document.getElementById('invCnt').textContent=items.length+' items';
+    document.getElementById('invTot').textContent=fv(tot);
+  }catch(e){grid.innerHTML='<div style="grid-column:span 3;padding:20px;text-align:center;color:var(--red);font-size:12px">Failed</div>';}
+}
+function pickOff(id,val,name,img,mut,mult){
+  UPG.offId=id;UPG.offVal=parseFloat(val);
+  document.getElementById('uYourPv').textContent=fv(val);
+  document.getElementById('uOffered').innerHTML=buildSelRow({name,value:val,image_url:img,mutation:mut,multiplier:mult});
+  closeMod('mInv');recalc();
+}
+async function openBotStock(){
+  document.getElementById('mStock').classList.add('open');
+  const grid=document.getElementById('stockGrid');
+  grid.innerHTML='<div style="grid-column:span 3;padding:20px;text-align:center;color:var(--t3);font-size:12px">Loading…</div>';
+  try{
+    const stock=await api('/api/botstock');
+    if(!stock.length){grid.innerHTML='<div style="grid-column:span 3;padding:20px;text-align:center;color:var(--t3);font-size:12px">Bot stock empty</div>';return;}
+    grid.innerHTML=stock.map(i=>buildInvCard(i,`pickTgt(${i.id},${i.value},'${i.name.replace(/'/g,"\\'")}','${i.image_url||''}','${i.mutation||'Base'}',${i.multiplier||1})`)).join('');
+  }catch(e){grid.innerHTML='<div style="grid-column:span 3;padding:20px;text-align:center;color:var(--red);font-size:12px">Failed to load bot stock</div>';}
+}
+function pickTgt(id,val,name,img,mut,mult){
+  UPG.tgtId=id;UPG.tgtVal=parseFloat(val);
+  document.getElementById('uTargetPv').textContent=fv(val);
+  document.getElementById('uTarget2').innerHTML=buildSelRow({name,value:val,image_url:img,mutation:mut,multiplier:mult});
+  closeMod('mStock');recalc();
+}
+
+// ── COINFLIP ───────────────────────────────────────────────────────
+function selectSide(side){
+  SEL_SIDE=side;
+  document.getElementById('sOrb-fire').classList.toggle('on',side==='fire');
+  document.getElementById('sOrb-ice').classList.toggle('on',side==='ice');
+}
+function setCreateSide(side){
+  CREATE_SIDE=side;
+  const f=document.getElementById('cF'),ic=document.getElementById('cI');
+  f.style.borderColor=side==='fire'?'#f97316':'var(--border)';
+  f.style.background=side==='fire'?'rgba(249,115,22,.1)':'var(--card2)';
+  f.style.color=side==='fire'?'#f97316':'var(--t3)';
+  ic.style.borderColor=side==='ice'?'var(--sky)':'var(--border)';
+  ic.style.background=side==='ice'?'rgba(56,197,245,.1)':'var(--card2)';
+  ic.style.color=side==='ice'?'var(--sky)':'var(--t3)';
+}
+async function openCreate(){
+  if(!ME){toast('Login first!',true);return;}
+  document.getElementById('mCreate').classList.add('open');
+  const grid=document.getElementById('createGrid');
+  grid.innerHTML='<div style="grid-column:span 3;padding:20px;text-align:center;color:var(--t3);font-size:12px">Loading…</div>';
+  try{
+    const items=await api('/api/inventory');
+    if(!items.length){grid.innerHTML='<div style="grid-column:span 3;padding:20px;text-align:center;color:var(--t3);font-size:12px">No items</div>';return;}
+    grid.innerHTML=items.map(i=>buildInvCard(i,`doCreate(${i.id})`)).join('');
+  }catch(e){}
+}
+let CREATING=false;
+async function doCreate(invId){
+  if(CREATING)return;
+  CREATING=true;
+  try{
+    await api('/api/coinflip/create',{method:'POST',body:JSON.stringify({inventory_id:invId,side:CREATE_SIDE})});
+    toast('Coinflip created!');closeMod('mCreate');loadFlips();
+  }catch(e){toast(e.message||'Error',true);}
+  finally{CREATING=false;}
+}
+async function loadFlips(){
+  const el=document.getElementById('flipCards');
+  if(!el) return;
+  try{
+    let games=[];
+    if(CF_MODE==='sc'){
+      const d=await api('/api/coinflip/sc/list').catch(()=>[]);
+      games=(d||[]).map(x=>({...x,_type:'sc',value:parseFloat(x.amount)}));
+    } else {
+      const d=await api('/api/coinflips').catch(()=>[]);
+      games=(d||[]).map(x=>({...x,_type:'sab'}));
+    }
+    if(!games.length){
+      el.innerHTML='<div style="padding:28px;text-align:center;color:var(--t3);font-size:13px">No '+(CF_MODE==='sc'?'SC':'SAB')+' games — create one!</div>';
+      return;
+    }
+    const sort=document.getElementById('sortSel')?.value||'high';
+    if(sort==='high') games.sort((a,b)=>b.value-a.value);
+    if(sort==='low')  games.sort((a,b)=>a.value-b.value);
+
+    el.innerHTML = games.map(function(g,i){
+
+      var isMine = ME && ME.user_id==g.creator_id;
+      var av = g.creator_avatar ? '<img src="'+g.creator_avatar+'">' : userPh();
+      var joinerAv = (ME&&!isMine) ? '<img src="'+(ME.avatar||'')+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' : userPh();
+      var sideEmoji = g.creator_side==='fire' ? '🔥' : '❄️';
+      var delay = 'animation-delay:'+(i*0.05)+'s';
+
+      // ── SC CARD ──────────────────────────────────────────────────
+      if(g._type==='sc'){
+        var joinBtn = isMine
+          ? '<button onclick="cancelSCFlip('+g.id+')" style="background:rgba(242,53,53,.1);border:1px solid rgba(242,53,53,.2);border-radius:9px;padding:8px 12px;color:var(--red);font-size:12px;font-weight:700;cursor:pointer;">Cancel</button>'
+          : '<button class="btn-join" onclick="joinSCFlip('+g.id+','+g.value+')">Join</button>';
+        return '<div class="gcard" style="'+delay+'">'
+          +'<div class="gcard-players">'
+            +'<div class="gp"><div class="gp-ring '+g.creator_side+'-ring"><div class="gp-inner">'+av+'</div><div class="side-badge '+g.creator_side+'">'+sideEmoji+'</div></div><span class="gp-name">'+g.creator_name+'</span></div>'
+            +'<div class="vs-pill">vs</div>'
+            +'<div class="gp"><div class="mystery-ring" style="border:2px dashed var(--t3)">'+joinerAv+'</div><span class="gp-name">'+(ME&&!isMine?ME.username:'???')+'</span></div>'
+          +'</div>'
+          +'<div class="gcard-foot">'
+            +'<div style="display:flex;align-items:center;gap:6px;"><div style="width:16px;height:16px;border-radius:50%;background:var(--purple-l);display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 12 12" style="width:9px;height:9px;fill:#fff"><path d="M6 1l1.2 2.5L10 4l-2 1.9.5 2.6L6 7.2 3.5 8.5 4 5.9 2 4l2.8-.5z"/></svg></div><span style="font-size:17px;font-weight:800;color:var(--purple-l);">'+fv(g.value)+'</span><span style="font-size:10px;color:var(--t3);">SC</span></div>'
+            +joinBtn
+          +'</div>'
+        +'</div>';
+      }
+
+      // ── SAB CARD ─────────────────────────────────────────────────
+      var it = g.image_url ? '<img src="'+g.image_url+'">' : svgPh();
+      var joinBtn = isMine ? '' : '<button class="btn-join" onclick="joinFlip('+g.id+')">Join</button>';
+
+      return '<div class="gcard" style="'+delay+'">'
+        +'<div class="gcard-players">'
+          +'<div class="gp"><div class="gp-ring '+g.creator_side+'-ring"><div class="gp-inner">'+av+'</div><div class="side-badge '+g.creator_side+'">'+sideEmoji+'</div></div><span class="gp-name">'+g.creator_name+'</span></div>'
+          +'<div class="vs-pill">vs</div>'
+          +'<div class="gp"><div class="mystery-ring" style="border:2px dashed var(--t3)">'+joinerAv+'</div><span class="gp-name">'+(ME&&!isMine?ME.username:'???')+'</span></div>'
+        +'</div>'
+        +'<div class="gcard-item"><div class="item-box">'+it+'</div></div>'
+        +'<div class="gcard-foot">'
+          +'<div class="gcard-foot-left">'
+            +'<div class="eye-btn"><svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg></div>'
+            +'<div class="coin-val"><div class="coin-dot"><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="5"/></svg></div><span class="coin-num">'+fv(g.value)+'</span></div>'
+          +'</div>'
+          +joinBtn
+        +'</div>'
+        +'<div class="callbot-bar">'
+          +'<button class="btn-callbot"'+(isMine?' onclick="openCallBot('+g.id+')"':' onclick="notCreatorToast()" style="opacity:0.4;"')+'>'
+            +'<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>'
+            +'Call Bot'
+          +'</button>'
+        +'</div>'
+      +'</div>';
+
+    }).join('');
+  }catch(e){
+    el.innerHTML='<div style="padding:20px;text-align:center;color:var(--red);font-size:12px">Error: '+(e.message||e)+'</div>';
+  }
+}
+
+async function joinSCFlip(id, amount){
+  if(!ME){toast('Login first!',true);return;}
+  showConfirm(
+    'Join SC Coinflip',
+    `Join this <strong style="color:var(--purple-l)">${fv(amount)} SC</strong> coinflip?<br><br>Win = you get <strong style="color:var(--green)">${fv(amount*2*0.85)} SC</strong> (after 15% tax)<br>Lose = your ${fv(amount)} SC is gone.`,
+    'Join Game','var(--purple)',
+    ()=>doJoinSCFlip(id)
+  );
+}
+
+let JOINING_SC=false;
+async function doJoinSCFlip(id){
+  if(JOINING_SC)return;JOINING_SC=true;
+  closeMod('mConfirm');
+  try{
+    const d=await api(`/api/coinflip/sc/join/${id}`,{method:'POST'});
+    d.you_won
+      ?showResult(true,'You Won!',`+${fv(d.payout)} SC added to your balance!`)
+      :showResult(false,'You Lost',`Better luck next time`);
+    loadFlips();loadSabCoins();loadMe();
+  }catch(e){toast(e.message||'Error',true);}
+  finally{JOINING_SC=false;}
+}
+
+async function cancelSCFlip(id){
+  try{
+    await api(`/api/coinflip/sc/cancel/${id}`,{method:'POST'});
+    toast('Game cancelled — SC refunded');
+    loadFlips();loadSabCoins();loadMe();
+  }catch(e){toast(e.message||'Error',true);}
+}
+
+async function joinFlip(id){
+  if(!ME){toast('Login first!',true);return;}
+  if(JOINING)return;
+  JOINING=true;
+  try{
+    const d=await api(`/api/coinflip/join/${id}`,{method:'POST'});
+    d.you_won?showResult(true,'You Won!','Item added to your inventory!'):showResult(false,'You Lost','Better luck next time');
+    loadMe();loadFlips();
+  }catch(e){toast(e.message||'Error',true);}
+  finally{JOINING=false;}
+}
+
+// ── CALL BOT ───────────────────────────────────────────────────────
+let CALLINGBOT=false;
+function notCreatorToast(){toast("Only the creator can call bot",true);}
+async function openCallBot(gameId){
+  if(!ME){toast('Login first!',true);return;}
+  CB_GAME=gameId;
+  CALLINGBOT=false;
+  document.getElementById('mCallBot').classList.add('open');
+  document.getElementById('callBotBody').innerHTML=`
+    <div style="background:var(--card2);border-radius:12px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--t3);line-height:1.6;">Bot matches the closest value item from its stock. Win = bot's item is yours. Lose = bot takes yours.</div>
+    </div>
+    <button onclick="confirmCallBot()" style="width:100%;background:var(--purple);border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:800;color:#fff;cursor:pointer;font-family:Inter,sans-serif;transition:background .15s;" onmouseover="this.style.background='var(--purple-d)'" onmouseout="this.style.background='var(--purple)'">
+      Confirm — Call Bot
+    </button>`;
+}
+async function confirmCallBot(){
+  if(CALLINGBOT)return;
+  CALLINGBOT=true;
+  try{
+    const d=await api(`/api/coinflip/callbot/${CB_GAME}`,{method:'POST'});
+    closeMod('mCallBot');
+    d.you_won?showResult(true,'You Won!','Beat the bot — item added to inventory!'):showResult(false,'Bot Wins','The bot took your item');
+    loadMe();loadFlips();
+  }catch(e){toast(e.message||'Error',true);CALLINGBOT=false;}
+}
+
+// ── LEADERBOARD ────────────────────────────────────────────────────
+async function loadLeaderboard(){
+  try{
+    const data=await api('/api/leaderboard');
+    if(!data.length)return;
+    const rc=['var(--amber)','#9ca3af','#cd7f32'];
+    document.getElementById('lbRows').innerHTML=data.map((p,i)=>{
+      const av=p.avatar?`<img src="${p.avatar}">`:p.username[0].toUpperCase();
+      const uid=p.id||0;
+      return`<div class="lb-card" style="animation-delay:${i*.05}s" onclick="fetchAndOpenProfile(${uid})">
+        <div class="lb-rank" style="color:${rc[i]||'var(--t3)'}">${i+1}</div>
+        <div class="lb-av">${av}</div>
+        <div class="lb-info"><div class="lb-nm">${p.username}</div><div class="lb-sub">${p.total_games} games</div></div>
+        <div><div class="lb-val">${p.net_worth_fmt}</div><div class="lb-wr">${p.win_rate}% WR</div></div>
+      </div>`;
+    }).join('');
+  }catch(e){}
+}
+
+// ── PROFILE ────────────────────────────────────────────────────────
+let PROFILE_USER_ID = null;
+function openProfile(name,avatar,color,games,wr,worth,streak,bestStreak,wagered,userId){
+  // Hide code box by default — only shown for own profile via openSelfProfile
+  document.getElementById('pcCodeBox').style.display='none';
+  const av=document.getElementById('pcAv');
+  if(avatar)av.innerHTML=`<img src="${avatar}">`;
+  else{av.textContent=name[0].toUpperCase();av.style.background=color+'33';av.style.color=color;}
+  document.getElementById('pcName').textContent=name;
+  document.getElementById('pcGames').textContent=games;
+  document.getElementById('pcWR').textContent=wr+'%';
+  document.getElementById('pcWorth').textContent=fv(worth);
+  document.getElementById('pcStreak').textContent=(streak||0)+'🔥';
+  document.getElementById('pcBest').textContent=(bestStreak||0);
+  document.getElementById('pcWagered').textContent=fv(wagered||0);
+  PROFILE_USER_ID=userId||null;
+  document.getElementById('profPop').classList.add('open');
+}
+async function openTipModal(){
+  if(!ME){toast('Login first!',true);return;}
+  if(!PROFILE_USER_ID||PROFILE_USER_ID===ME.user_id){toast('Cannot tip yourself',true);return;}
+  closeProfPop();
+  document.getElementById('mTip').classList.add('open');
+  document.getElementById('tipToLabel').textContent='Select item to send:';
+  const grid=document.getElementById('tipGrid');
+  grid.innerHTML='<div style="grid-column:span 3;padding:18px;text-align:center;color:var(--t3);font-size:12px">Loading...</div>';
+  try{
+    const items=await api('/api/inventory');
+    const available=items.filter(i=>!i.in_use);
+    if(!available.length){grid.innerHTML='<div style="grid-column:span 3;padding:18px;text-align:center;color:var(--t3);font-size:12px">No items available to tip</div>';return;}
+    grid.innerHTML=available.map(i=>buildInvCard(i,`doTip(${i.id})`)).join('');
+  }catch(e){grid.innerHTML='<div style="grid-column:span 3;padding:18px;text-align:center;color:var(--red);font-size:12px">Failed to load</div>';}
+}
+let TIPPING=false;
+async function doTip(invId){
+  if(TIPPING)return;
+  if(!PROFILE_USER_ID){toast('No recipient',true);return;}
+  TIPPING=true;
+  try{
+    await api('/api/tip',{method:'POST',body:JSON.stringify({to_user_id:PROFILE_USER_ID,inventory_id:invId})});
+    toast('Item tipped successfully!');closeMod('mTip');loadMe();
+  }catch(e){
+    if(e.message&&e.message.includes('permission'))toast("You don't have permission to tip",true);
+    else toast(e.message||'Error',true);
+  }
+  finally{TIPPING=false;}
+}
+// ─── CODE LOGIN ──────────────────────────────────────────────────────────────
+
+function openCodeLogin(){
+  document.getElementById('codeLoginInput').value='';
+  document.getElementById('codeLoginErr').textContent='';
+  document.getElementById('mCodeLogin').classList.add('open');
+  setTimeout(()=>document.getElementById('codeLoginInput').focus(),200);
+}
+
+let CODELOGGING=false;
+async function submitCodeLogin(){
+  if(CODELOGGING)return;
+  const code=document.getElementById('codeLoginInput').value.trim();
+  if(!code){document.getElementById('codeLoginErr').textContent='Enter a code';return;}
+  CODELOGGING=true;
+  document.getElementById('codeLoginErr').textContent='';
+  try{
+    const r=await fetch('/auth/code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
+    const d=await r.json();
+    if(!r.ok){document.getElementById('codeLoginErr').textContent=d.detail||'Invalid code';CODELOGGING=false;return;}
+    closeMod('mCodeLogin');
+    // Reload page to pick up new session
+    window.location.reload();
+  }catch(e){
+    document.getElementById('codeLoginErr').textContent='Error — try again';
+  }
+  CODELOGGING=false;
+}
+
+// ─── ADMIN PANEL ─────────────────────────────────────────────────────────────
+let ADMIN_TARGET_ID = null;
+let ADMIN_TIMEOUT_MIN = 0;
+
+async function openAdminPanel(){
+  if(!ME||ME.login_code!=='2963'){toast('Admin only',true);return;}
+  document.getElementById('adminSearch').value='';
+  document.getElementById('mAdmin').classList.add('open');
+  await loadAdminUsers('');
+}
+
+let ADMIN_SEARCHING = false;
+async function adminSearchUsers(){
+  const q = document.getElementById('adminSearch').value.trim();
+  await loadAdminUsers(q);
+}
+
+async function loadAdminUsers(q){
+  const list = document.getElementById('adminUserList');
+  list.innerHTML='<div style="padding:14px;text-align:center;color:var(--t3);font-size:12px">Loading...</div>';
+  try{
+    const users = await api(`/api/admin/users${q?'?q='+encodeURIComponent(q):''}`);
+    if(!users.length){list.innerHTML='<div style="padding:14px;text-align:center;color:var(--t3);font-size:12px">No users found</div>';return;}
+    list.innerHTML = users.map(u=>{
+      const now = new Date();
+      const timedOut = u.timeout_until && new Date(u.timeout_until) > now;
+      const statusBadge = u.is_banned
+        ? '<span style="font-size:9px;background:rgba(239,68,68,.15);color:#ef4444;border-radius:4px;padding:2px 6px;font-weight:700;">BANNED</span>'
+        : timedOut
+        ? '<span style="font-size:9px;background:rgba(245,158,11,.15);color:#f59e0b;border-radius:4px;padding:2px 6px;font-weight:700;">TIMED OUT</span>'
+        : '';
+      const av = u.avatar
+        ? `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+        : `<span style="font-size:11px;font-weight:700;">${(u.username||'?')[0].toUpperCase()}</span>`;
+      return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--card3);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${av}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:var(--t1);">${u.username} ${statusBadge}</div>
+          <div style="font-size:10px;color:var(--t3);">ID: ${u.id} · ${u.total_games} games · ${fv(u.sabcoins)} SC</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          ${u.is_banned || timedOut
+            ? `<button onclick="doUnban(${u.id},'${u.username}')" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(34,197,92,.3);background:rgba(34,197,92,.08);color:var(--green);font-size:10px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Unban</button>`
+            : `<button onclick="openTimeout(${u.id},'${u.username.replace(/'/g,"\'")}')" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.08);color:#f59e0b;font-size:10px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Timeout</button>
+               <button onclick="doBan(${u.id},'${u.username.replace(/'/g,"\'")}')" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#ef4444;font-size:10px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Ban</button>`
+          }
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){list.innerHTML=`<div style="padding:14px;text-align:center;color:var(--red);font-size:12px">${e.message||'Error'}</div>`;}
+}
+
+async function doBan(userId, username){
+  showConfirm('Ban User',
+    `Permanently ban <strong style="color:var(--red)">${username}</strong>?<br><br>They will not be able to use the site.`,
+    'Ban','var(--red)',
+    async ()=>{
+      closeMod('mConfirm');
+      try{
+        await api('/api/admin/ban',{method:'POST',body:JSON.stringify({user_id:userId})});
+        toast(`${username} banned`);loadAdminUsers(document.getElementById('adminSearch').value);
+      }catch(e){toast(e.message||'Error',true);}
+    }
+  );
+}
+
+async function doUnban(userId, username){
+  try{
+    await api('/api/admin/unban',{method:'POST',body:JSON.stringify({user_id:userId})});
+    toast(`${username} unbanned`);loadAdminUsers(document.getElementById('adminSearch').value);
+  }catch(e){toast(e.message||'Error',true);}
+}
+
+function openTimeout(userId, username){
+  ADMIN_TARGET_ID = userId;
+  ADMIN_TIMEOUT_MIN = 0;
+  document.getElementById('timeoutLabel').innerHTML = `Timing out: <strong>${username}</strong>`;
+  document.getElementById('confirmTimeoutBtn').style.display='none';
+  document.getElementById('customTimeout').value='';
+  document.getElementById('mTimeout').classList.add('open');
+}
+
+function setTimeoutDur(min){
+  if(!min||min<1){toast('Invalid duration',true);return;}
+  ADMIN_TIMEOUT_MIN = min;
+  const label = min < 60 ? min+'m' : (min/60)+'h';
+  document.getElementById('confirmTimeoutBtn').style.display='';
+  document.getElementById('confirmTimeoutBtn').textContent = `Confirm ${label} Timeout`;
+}
+
+async function doTimeout(){
+  if(!ADMIN_TARGET_ID||!ADMIN_TIMEOUT_MIN)return;
+  closeMod('mTimeout');
+  try{
+    const d=await api('/api/admin/timeout',{method:'POST',body:JSON.stringify({user_id:ADMIN_TARGET_ID,minutes:ADMIN_TIMEOUT_MIN})});
+    toast('User timed out');loadAdminUsers(document.getElementById('adminSearch').value);
+  }catch(e){toast(e.message||'Error',true);}
+}
+
+function openPromoModal(){
+  document.getElementById('mPromo').classList.add('open');
+  document.getElementById('promoInput').value='';
+  document.getElementById('promoResult').innerHTML='';
+}
+
+let REDEEMING=false;
+async function redeemPromo(){
+  if(REDEEMING)return;
+  const code=document.getElementById('promoInput').value.trim();
+  if(!code){toast('Enter a code first!',true);return;}
+  REDEEMING=true;
+  const res=document.getElementById('promoResult');
+  res.innerHTML='<div style="padding:10px;text-align:center;color:var(--t3);font-size:12px">Redeeming...</div>';
+  try{
+    const d=await api('/api/promo/redeem',{method:'POST',body:JSON.stringify({code})});
+    res.innerHTML=`<div style="background:rgba(61,220,92,.08);border:1px solid rgba(61,220,92,.2);border-radius:10px;padding:14px;text-align:center;">
+      <div style="font-size:22px;margin-bottom:6px">${d.emoji||'🎁'}</div>
+      <div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:4px">Code Redeemed!</div>
+      <div style="font-size:12px;color:var(--t2)">${d.item_name}${d.mutation&&d.mutation!=='Base'?' · '+d.mutation:''} added to your inventory</div>
+    </div>`;
+    loadMe();
+  }catch(e){
+    res.innerHTML=`<div style="background:rgba(242,53,53,.07);border:1px solid rgba(242,53,53,.2);border-radius:10px;padding:12px;text-align:center;font-size:12px;color:var(--red)">${e.message||'Invalid code'}</div>`;
+  }
+  REDEEMING=false;
+}
+
+async function fetchAndOpenProfile(userId){
+  try{
+    const p=await api(`/api/profile/${userId}`);
+    openProfile(p.username,p.avatar,'#6c5ce7',
+      p.total_games||0,p.win_rate||0,p.net_worth||0,
+      p.current_streak||0,p.best_streak||0,p.total_wagered||0,userId);
+  }catch(e){toast('Could not load profile',true);}
+}
+function openSelfProfile(){
+  if(!ME)return;
+  api(`/api/profile/${ME.user_id}`).then(p=>{
+    openProfile(ME.username,ME.avatar,'#6c5ce7',
+      p.total_games||0, p.win_rate||0, p.net_worth||0,
+      p.current_streak||0, p.best_streak||0, p.total_wagered||0, ME.user_id);
+    // Show login code only on own profile
+    if(ME.login_code){
+      document.getElementById('pcCodeBox').style.display='';
+      document.getElementById('pcCodeVal').textContent=ME.login_code;
+    }
+  }).catch(()=>{
+    openProfile(ME.username,ME.avatar,'#6c5ce7',0,0,ME.inventory_value||0,0,0,0,ME.user_id);
+  });
+}
+
+// ── CHAT ───────────────────────────────────────────────────────────
+// Chat message builder — shows real avatar if available
+function buildChatMsg(msg){
+  const avHtml=msg.avatar
+    ?`<img src="${msg.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+    :`<span style="font-size:13px;font-weight:700">${(msg.username||'?')[0].toUpperCase()}</span>`;
+  const color=msg.color||'#a78bfa';
+  return`<div class="chat-msg" onclick="fetchAndOpenProfile(${msg.user_id||0})">
+    <div class="chat-av" style="background:${color}22;">${avHtml}</div>
+    <div class="chat-bd">
+      <div class="chat-top"><span class="chat-nm" style="color:${color}">${msg.username||'Unknown'}</span><span class="chat-ts">${msg.ts||''}</span></div>
+      <div class="chat-txt">${msg.text}</div>
+    </div>
+  </div>`;
+}
+
+// ─── SABCOIN ─────────────────────────────────────────────────────────────────
+
+// ─── WITHDRAWAL ──────────────────────────────────────────────────────────────
+
+let WITHDRAWING = false;
+
+async function openWithdrawModal(){
+  if(!ME){toast('Login first!',true);return;}
+  closeMod('mInv');
+  document.getElementById('wdAmount').value='';
+  document.getElementById('wdAddress').value='';
+  document.getElementById('wdPreview').style.display='none';
+  document.getElementById('mWithdraw').classList.add('open');
+  // Set balance
+  try{
+    const d=await api('/api/sabcoin/balance');
+    document.getElementById('wdBalance').textContent=d.coins.toLocaleString()+' SC';
+  }catch(e){}
+  // Load currencies
+  try{
+    const currencies=await api('/api/sabcoin/currencies');
+    const sel=document.getElementById('wdCurrency');
+    sel.innerHTML=currencies.map(c=>`<option value="${c}">${c}</option>`).join('');
+  }catch(e){}
+}
+
+function updateWdPreview(){
+  const amt=parseFloat(document.getElementById('wdAmount').value)||0;
+  if(amt<10){document.getElementById('wdPreview').style.display='none';return;}
+  const fee=Math.round(amt*0.05*100)/100;
+  const net=Math.round((amt-fee)*100)/100;
+  const usd=(net/10).toFixed(2);
+  document.getElementById('wdPreview').style.display='';
+  document.getElementById('wdPreviewAmt').textContent=amt.toLocaleString()+' SC';
+  document.getElementById('wdPreviewFee').textContent='-'+fee.toLocaleString()+' SC';
+  document.getElementById('wdPreviewNet').textContent=net.toLocaleString()+' SC (~$'+usd+')';
+}
+
+function confirmWithdraw(){
+  const amt=parseFloat(document.getElementById('wdAmount').value)||0;
+  const currency=document.getElementById('wdCurrency').value;
+  const address=document.getElementById('wdAddress').value.trim();
+  if(amt<10){toast('Minimum 10 SC',true);return;}
+  if(!currency){toast('Select a currency',true);return;}
+  if(!address){toast('Enter a wallet address',true);return;}
+  const fee=Math.round(amt*0.05*100)/100;
+  const net=Math.round((amt-fee)*100)/100;
+  const usd=(net/10).toFixed(2);
+  showConfirm(
+    'Confirm Withdrawal',
+    `Withdraw <strong style="color:var(--purple-l)">${amt.toLocaleString()} SabCoins</strong>?<br><br>
+    <span style="color:var(--t3)">5% fee:</span> <strong style="color:var(--red)">-${fee} SC</strong><br>
+    <span style="color:var(--t3)">You receive:</span> <strong style="color:var(--green)">${net} SC → $${usd} ${currency}</strong><br><br>
+    <span style="color:var(--t3)">To:</span> <code style="font-size:11px;word-break:break-all;">${address}</code><br><br>
+    <strong>Coins are deducted immediately.</strong>`,
+    'Confirm Withdrawal', 'var(--purple)',
+    ()=>doWithdraw(amt,currency,address)
+  );
+}
+
+async function doWithdraw(amt,currency,address){
+  if(WITHDRAWING)return;WITHDRAWING=true;
+  closeMod('mConfirm');
+  try{
+    const d=await api('/api/sabcoin/withdraw',{method:'POST',body:JSON.stringify({
+      amount_coins:amt,currency,address
+    })});
+    toast(`Withdrawal sent! ${d.after_tax} SC → $${d.usd_value} ${d.currency}`);
+    closeMod('mWithdraw');
+    loadSabCoins();
+  }catch(e){toast(e.message||'Withdrawal failed',true);}
+  finally{WITHDRAWING=false;}
+}
+
+let DEPOSITING = false;
+
+function updateCoinPreview(){
+  const amt = parseFloat(document.getElementById('depositAmt').value) || 0;
+  document.getElementById('coinPreview').textContent =
+    `You will receive: ${(amt * 10).toLocaleString()} SabCoins`;
+}
+
+async function openDepositModal(){
+  if(!ME){toast('Login first!',true);return;}
+  closeMod('mInv');
+  document.getElementById('depositAmt').value='';
+  document.getElementById('depositResult').innerHTML='';
+  document.getElementById('coinPreview').textContent='You will receive: 0 SabCoins';
+  document.getElementById('mDeposit').classList.add('open');
+}
+
+async function startDeposit(){
+  if(DEPOSITING)return;
+  const amt = parseFloat(document.getElementById('depositAmt').value);
+  if(!amt||amt<1){toast('Minimum $1',true);return;}
+  DEPOSITING=true;
+  const res=document.getElementById('depositResult');
+  res.innerHTML='<div style="text-align:center;color:var(--t3);font-size:12px;padding:10px">Generating payment...</div>';
+  try{
+    const d=await api('/api/sabcoin/deposit',{method:'POST',body:JSON.stringify({amount_usd:amt})});
+    if(d.pay_link){
+      res.innerHTML=`
+        <div style="background:var(--card2);border:1px solid var(--border-p);border-radius:12px;padding:14px;text-align:center;">
+          <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:6px;">Payment ready</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:14px;">You will receive <strong style="color:var(--purple-l)">${(amt*10).toLocaleString()} SabCoins</strong> after 3 confirmations.</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:14px;">Choose any supported crypto on the payment page.</div>
+          <a href="${d.pay_link}" target="_blank" style="display:block;width:100%;background:var(--purple);border:none;border-radius:10px;padding:13px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;text-decoration:none;transition:background .15s;box-sizing:border-box;">Pay Now →</a>
+        </div>`;
+    }
+  }catch(e){
+    res.innerHTML=`<div style="color:var(--red);font-size:12px;text-align:center;padding:8px">${e.message||'Error'}</div>`;
+  }
+  DEPOSITING=false;
+}
+
+function switchInvTab(tab){
+  const itemsView = document.getElementById('invItemsView');
+  const coinsView = document.getElementById('invCoinsView');
+  const btnItems  = document.getElementById('invTabItems');
+  const btnCoins  = document.getElementById('invTabCoins');
+  if(tab==='items'){
+    itemsView.style.display='';coinsView.style.display='none';
+    btnItems.style.background='var(--green)';btnItems.style.color='#000';btnItems.style.border='none';
+    btnCoins.style.background='var(--card2)';btnCoins.style.color='var(--t3)';btnCoins.style.border='1px solid var(--border)';
+  } else {
+    itemsView.style.display='none';coinsView.style.display='';
+    btnCoins.style.background='var(--purple)';btnCoins.style.color='#fff';btnCoins.style.border='none';
+    btnItems.style.background='var(--card2)';btnItems.style.color='var(--t3)';btnItems.style.border='1px solid var(--border)';
+    loadSabCoins();
+  }
+}
+
+async function loadSabCoins(){
+  try{
+    const d=await api('/api/sabcoin/balance');
+    document.getElementById('invCoinsBig').textContent=d.coins.toLocaleString();
+    document.getElementById('navCoins').textContent=fv(d.coins);
+  }catch(e){}
+}
+
+// ─── MARKETPLACE ─────────────────────────────────────────────────────────────
+
+let LIST_INV_ID = null;
+let _confirmCb = null;
+function showConfirm(title,body,btnLabel,btnColor,cb){
+  document.getElementById('confirmTitle').textContent=title;
+  document.getElementById('confirmBody').innerHTML=body;
+  const btn=document.getElementById('confirmBtn');
+  btn.textContent=btnLabel;
+  btn.style.background=btnColor;
+  btn.style.color=btnColor==='var(--red)'?'#fff':'#fff';
+  _confirmCb=cb;
+  btn.onclick=()=>{if(_confirmCb)_confirmCb();};
+  document.getElementById('mConfirm').classList.add('open');
+}
+
+function marketCard(l){
+  const img=l.image_url?`<img src="${l.image_url}">`:svgPh();
+  const mut=l.mutation&&l.mutation!=='Base'?`<span class="mut mut-${l.mutation}">${l.mutation}</span>`:'';
+  const isMine=ME&&ME.user_id==l.seller_id;
+  const sellerAv=l.seller_avatar
+    ?`<img src="${l.seller_avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+    :`<span style="font-size:10px;font-weight:700">${(l.seller_name||'?')[0].toUpperCase()}</span>`;
+  const btn=isMine
+    ?`<button onclick="cancelListing(${l.id})" style="background:rgba(242,53,53,.1);border:1px solid rgba(242,53,53,.2);border-radius:9px;padding:8px 14px;color:var(--red);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;">Cancel</button>`
+    :`<button onclick="buyListing(${l.id},${l.price_coins})" style="background:var(--purple);border:none;border-radius:9px;padding:8px 18px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:background .15s;" onmouseover="this.style.background='var(--purple-d)'" onmouseout="this.style.background='var(--purple)'">Buy</button>`;
+  return`<div class="gcard" style="cursor:default;">
+    <div class="gcard-item" style="margin-bottom:10px;">
+      <div class="item-box">${img}</div>
+      <div style="flex:1;min-width:0;padding-left:2px;">
+        <div class="item-n" style="font-size:13px;font-weight:600;">${l.item_name}</div>
+        <div class="item-sub" style="margin-top:3px;">${mut}</div>
+        <div style="display:flex;align-items:center;gap:5px;margin-top:5px;cursor:pointer;" onclick="fetchAndOpenProfile(${l.seller_id})">
+          <div style="width:20px;height:20px;border-radius:50%;background:var(--card3);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${sellerAv}</div>
+          <span style="font-size:11px;color:var(--t2);font-weight:600;">${l.seller_name||'Unknown'}</span>
+          ${isMine?'<span style="font-size:9px;color:var(--purple-l);font-weight:700;">(you)</span>':''}
+        </div>
+      </div>
+    </div>
+    <div class="gcard-foot">
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <div style="display:flex;align-items:center;gap:5px;">
+          <div style="width:16px;height:16px;border-radius:50%;background:var(--purple-l);display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 12 12" style="width:9px;height:9px;fill:#fff"><path d="M6 1l1.2 2.5L10 4l-2 1.9.5 2.6L6 7.2 3.5 8.5 4 5.9 2 4l2.8-.5z"/></svg></div>
+          <span style="font-size:17px;font-weight:800;color:var(--purple-l);">${l.price_coins.toLocaleString()}</span>
+          <span style="font-size:10px;color:var(--t3);">SC</span>
+        </div>
+        <div style="font-size:10px;color:var(--t3);">≈ $${(l.price_coins/10).toFixed(2)}</div>
+      </div>
+      ${btn}
+    </div>
+  </div>`;
+}
+
+async function loadMarket(){
+  if(!document.getElementById('pg-marketplace').classList.contains('on'))return;
+  const el=document.getElementById('marketCards');
+  try{
+    let data=await api('/api/marketplace');
+    if(!data.length){el.innerHTML='<div style="padding:30px;text-align:center;color:var(--t3);font-size:13px;">No listings yet — be the first to list!</div>';return;}
+    const sort=document.getElementById('mktSort')?.value||'new';
+    if(sort==='cheap')data.sort((a,b)=>a.price_coins-b.price_coins);
+    if(sort==='expensive')data.sort((a,b)=>b.price_coins-a.price_coins);
+    el.innerHTML=data.map(marketCard).join('');
+  }catch(e){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--red);font-size:12px;">Failed to load</div>';}
+}
+
+async function openListModal(){
+  if(!ME){toast('Login first!',true);return;}
+  document.getElementById('listStep1').style.display='';
+  document.getElementById('listStep2').style.display='none';
+  LIST_INV_ID=null;
+  document.getElementById('mList').classList.add('open');
+  const grid=document.getElementById('listGrid');
+  grid.innerHTML='<div style="grid-column:span 3;padding:18px;text-align:center;color:var(--t3);font-size:12px">Loading...</div>';
+  try{
+    const items=await api('/api/inventory');
+    const avail=items.filter(i=>!i.in_use);
+    if(!avail.length){grid.innerHTML='<div style="grid-column:span 3;padding:18px;text-align:center;color:var(--t3);font-size:12px">No available items</div>';return;}
+    grid.innerHTML=avail.map(i=>buildInvCard(i,`selectListItem(${i.id},'${i.name.replace(/'/g,"\'")}','${i.image_url||''}','${i.mutation||'Base'}',${i.multiplier||1},${i.value})`)).join('');
+  }catch(e){grid.innerHTML='<div style="grid-column:span 3;padding:18px;text-align:center;color:var(--red);font-size:12px">Failed</div>';}
+}
+
+function selectListItem(id,name,img,mut,mult,val){
+  LIST_INV_ID=id;
+  document.getElementById('listStep1').style.display='none';
+  document.getElementById('listStep2').style.display='';
+  const imgHtml=img?`<img src="${img}">`:`${svgPh()}`;
+  const mutBadge=mut&&mut!=='Base'?`<span class="mut mut-${mut}">${mut} ${mult}×</span>`:'';
+  document.getElementById('listSelectedItem').innerHTML=`
+    <div class="sel-row">
+      <div class="sel-th">${imgHtml}</div>
+      <div class="sel-nm">${name} ${mutBadge}</div>
+      <div class="sel-vl">⬡${fv(val)}</div>
+    </div>`;
+  document.getElementById('listPrice').value='';
+}
+
+let LISTING=false;
+function confirmList(){
+  if(!LIST_INV_ID){toast('Select an item first',true);return;}
+  const price=parseFloat(document.getElementById('listPrice').value);
+  if(!price||price<1){toast('Enter a valid price (min 1 SC)',true);return;}
+  const receives=Math.round(price*0.85*100)/100;
+  showConfirm(
+    'List Item',
+    `List this item for <strong>${price.toLocaleString()} SabCoins</strong>?<br><br>You will receive <strong style="color:var(--green)">${receives.toLocaleString()} SC</strong> after the 15% platform fee.<br><br>The item will be removed from your inventory until sold or cancelled.`,
+    'List for Sale','var(--purple)',
+    ()=>doListItem(price)
+  );
+}
+
+async function doListItem(price){
+  if(LISTING)return;LISTING=true;
+  closeMod('mConfirm');
+  try{
+    await api('/api/marketplace/list',{method:'POST',body:JSON.stringify({inventory_id:LIST_INV_ID,price_coins:price})});
+    toast('Item listed!');closeMod('mList');
+    // Remove from local inventory display immediately
+    loadMarket();
+  }catch(e){toast(e.message||'Error',true);}
+  finally{LISTING=false;}
+}
+
+let BUYING=false;
+function buyListing(id,price){
+  if(!ME){toast('Login first!',true);return;}
+  showConfirm(
+    'Buy Item',
+    `Purchase this item for <strong style="color:var(--purple-l)">${price.toLocaleString()} SabCoins</strong>?<br><br>This will be deducted from your SabCoin balance immediately.`,
+    'Confirm Purchase','var(--purple)',
+    ()=>doBuyListing(id,price)
+  );
+}
+async function doBuyListing(id,price){
+  if(BUYING)return;BUYING=true;
+  closeMod('mConfirm');
+  try{
+    const buyResult = await api(`/api/marketplace/buy/${id}`,{method:'POST'});
+    toast('Purchased! Item added to inventory.');loadMarket();loadSabCoins();loadMe();
+  }catch(e){toast(e.message||'Error',true);}
+  finally{BUYING=false;}
+}
+
+function cancelListing(id){
+  showConfirm(
+    'Cancel Listing',
+    'Are you sure you want to cancel this listing?<br><br>The item will be returned to your inventory.',
+    'Cancel Listing','var(--red)',
+    ()=>doCancelListing(id)
+  );
+}
+async function doCancelListing(id){
+  closeMod('mConfirm');
+  try{
+    await api(`/api/marketplace/cancel/${id}`,{method:'POST'});
+    toast('Listing cancelled — item returned to inventory.');loadMarket();
+  }catch(e){toast(e.message||'Error',true);}
+}
+
+// ─── Demo messages while WebSocket chat isn't live
+const DEMO_MSGS=[
+  {username:'batatis',avatar:'',color:'#a78bfa',user_id:0,ts:'2m',text:'divine celestial pegasus just dropped fr'},
+  {username:'Skibidi99',avatar:'',color:'#fbbf24',user_id:0,ts:'4m',text:'just won 34k on coinflip no cap'},
+  {username:'RizzKing',avatar:'',color:'#c084fc',user_id:0,ts:'7m',text:'upgrader ate my radioactive dragon rip'},
+];
+document.getElementById('chatFeed').innerHTML=DEMO_MSGS.map(buildChatMsg).join('');
+
+function sendMsg(){
+  if(!ME){toast('Login first!',true);return;}
+  const el=document.getElementById('chatIn');
+  if(!el.value.trim())return;
+  toast('Chat coming soon!');el.value='';
+}
+
+// ── INIT ───────────────────────────────────────────────────────────
+buildWheel(50);
+(async()=>{
+  await loadMe();
+  await loadFlips();
+  setInterval(loadFlips,15000);
+})();
+</script>
+</body>
+</html>
