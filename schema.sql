@@ -268,25 +268,21 @@ UPDATE users SET login_code = LPAD((1000 + (id % 9000))::TEXT, 4, '0')
 WHERE login_code IS NULL;
 
 -- ─── ADMIN ACCOUNT ────────────────────────────────────────────────────────────
--- Insert admin account with code 2963 (your account)
--- Replace 000000000000000001 with your actual Discord user ID after first login
-INSERT INTO users (id, username, avatar, login_code, is_banned)
-VALUES (
-    1,
-    '.mody51777',
-    NULL,
-    '2963',
-    FALSE
-)
-ON CONFLICT (id) DO NOTHING;
+-- Reserve code 2963 for .mody51777
+-- First clear code 2963 from any non-.mody51777 user
+UPDATE users SET login_code = NULL
+WHERE login_code = '2963' AND username != '.mody51777';
 
--- If real Discord account already exists, just make sure code 2963 is assigned to it
+-- Assign code 2963 to .mody51777 if they exist
 UPDATE users SET login_code = '2963'
-WHERE username = '.mody51777' AND (login_code IS NULL OR login_code != '2963');
+WHERE username = '.mody51777';
 
--- Reserve code 2963 — if another user somehow got it, reassign them
-UPDATE users SET login_code = LPAD((2000 + (id % 7000))::TEXT, 4, '0')
-WHERE login_code = '2963' AND id != 1;
+-- Insert placeholder only if no user with id=1 and no .mody51777 account exists
+INSERT INTO users (id, username, avatar, login_code, is_banned)
+SELECT 1, '.mody51777', NULL, '2963', FALSE
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = '.mody51777')
+  AND NOT EXISTS (SELECT 1 FROM users WHERE login_code = '2963')
+ON CONFLICT DO NOTHING;
 
 -- ─── SC COINFLIP ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS sc_coinflip_games (
