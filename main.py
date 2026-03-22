@@ -1,7 +1,10 @@
-import asyncio, os, threading
+import asyncio, os, sys, threading
 import uvicorn
 from dotenv import load_dotenv
 load_dotenv()
+
+# Ensure current directory is in path so all modules resolve
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 def run_web():
     port = int(os.environ.get("PORT", 8000))
@@ -16,8 +19,12 @@ def run_web():
     )
 
 async def run_bot():
-    import bot as bot_module
-    await bot_module.bot.start(os.environ["DISCORD_TOKEN"])
+    try:
+        from bot.bot import bot
+    except ModuleNotFoundError:
+        import bot as bot_module
+        bot = bot_module.bot
+    await bot.start(os.environ["DISCORD_TOKEN"])
 
 if __name__ == "__main__":
     web_thread = threading.Thread(target=run_web, daemon=True)
