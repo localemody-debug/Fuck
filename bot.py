@@ -163,15 +163,28 @@ class CloseTicketView(discord.ui.View):
 
 @bot.event
 async def on_ready():
-    pool = await db.get_pool()
-    schema_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "schema.sql")
-    with open(schema_path) as f:
-        await pool.execute(f.read())
-    await tree.sync(guild=discord.Object(id=GUILD_ID))
+    # Sync schema
+    try:
+        pool = await db.get_pool()
+        schema_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "schema.sql")
+        with open(schema_path) as f:
+            await pool.execute(f.read())
+    except Exception as e:
+        print(f"⚠️ Schema error (non-fatal): {e}")
+
+    # Sync slash commands — always runs even if schema fails
+    try:
+        synced = await tree.sync(guild=discord.Object(id=GUILD_ID))
+        print(f"✅ Synced {len(synced)} commands to guild {GUILD_ID}")
+    except Exception as e:
+        print(f"❌ Command sync failed: {e}")
 
     guild = bot.get_guild(GUILD_ID)
     if guild:
-        await auto_setup(guild)
+        try:
+            await auto_setup(guild)
+        except Exception as e:
+            print(f"⚠️ Auto-setup error: {e}")
 
     print(f"✅ SabPot bot ready as {bot.user}")
 
