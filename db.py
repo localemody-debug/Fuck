@@ -8,13 +8,13 @@ async def get_pool() -> asyncpg.Pool:
     global _pool
     if _pool is None:
         _pool = await asyncpg.create_pool(
-        os.environ["DATABASE_URL"],
-        min_size=5,
-        max_size=20,
-        max_inactive_connection_lifetime=300,  # recycle idle connections every 5 min
-        command_timeout=10,                    # kill queries stuck > 10s
-        statement_cache_size=200,              # cache prepared statements
-    )
+            os.environ["DATABASE_URL"],
+            min_size=5,
+            max_size=20,
+            max_inactive_connection_lifetime=300,
+            command_timeout=10,
+            statement_cache_size=200,
+        )
     return _pool
 
 async def close_pool():
@@ -41,31 +41,18 @@ def format_value(v) -> str:
 async def get_user(pool: asyncpg.Pool, user_id: int):
     return await pool.fetchrow("SELECT * FROM users WHERE id=$1", user_id)
 
-async def generate_unique_code(pool) -> str:
-    """Generate a unique 4-digit login code."""
-    import random
-    for _ in range(100):
-        code = str(random.randint(1000, 9999))
-        exists = await pool.fetchval("SELECT 1 FROM users WHERE login_code=$1", code)
-        if not exists:
-            return code
-    # Fallback: 6-digit
-    import secrets
-    return str(random.randint(100000, 999999))
-
 async def ensure_user(pool_arg, user_id: int, username: str, avatar: str = None):
     """Create user if not exists, assign login_code atomically without collision."""
     import random as _random
-    # First try: just upsert, preserving existing login_code
-    # If user already exists, this is all we need
+
     existing = await pool_arg.fetchval("SELECT login_code FROM users WHERE id=$1", user_id)
     if existing:
-        # User exists — just update name/avatar
         await pool_arg.execute(
             "UPDATE users SET username=$2, avatar=$3 WHERE id=$1",
             user_id, username, avatar
         )
         return
+
     # New user — find a unique code and insert atomically
     for attempt in range(50):
         code = str(_random.randint(1000, 9999))
@@ -74,14 +61,14 @@ async def ensure_user(pool_arg, user_id: int, username: str, avatar: str = None)
                 INSERT INTO users (id, username, avatar, login_code)
                 VALUES ($1, $2, $3, $4)
                 ON CONFLICT (id) DO UPDATE
-                    SET username   = EXCLUDED.username,
-                        avatar     = EXCLUDED.avatar,
-                        login_code = COALESCE(users.login_code, EXCLUDED.login_code)
+                SET username = EXCLUDED.username,
+                    avatar = EXCLUDED.avatar,
+                    login_code = COALESCE(users.login_code, EXCLUDED.login_code)
             """, user_id, username, avatar, code)
-            return  # success
+            return
         except Exception as e:
             if "login_code" in str(e) and attempt < 49:
-                continue  # code collision, try another
+                continue
             # Other error or ran out of attempts — insert without code
             await pool_arg.execute("""
                 INSERT INTO users (id, username, avatar)
@@ -96,7 +83,6 @@ async def get_user_by_code(pool, code: str):
 # ─── STAT HELPERS ────────────────────────────────────────────────────────────
 
 async def record_game_result(pool, user_id: int, won: bool, wagered_value: float, won_value: float = 0):
-    """Update total_games, total_wins, streaks, total_wagered, total_won atomically."""
     async with pool.acquire() as conn:
         async with conn.transaction():
             user = await conn.fetchrow("SELECT current_streak, best_streak FROM users WHERE id=$1", user_id)
@@ -104,28 +90,27 @@ async def record_game_result(pool, user_id: int, won: bool, wagered_value: float
                 return
             if won:
                 new_streak = (user["current_streak"] or 0) + 1
-                new_best   = max(user["best_streak"] or 0, new_streak)
+                new_best = max(user["best_streak"] or 0, new_streak)
                 await conn.execute("""
                     UPDATE users SET
-                        total_games   = total_games + 1,
-                        total_wins    = total_wins + 1,
+                        total_games = total_games + 1,
+                        total_wins = total_wins + 1,
                         current_streak = $2,
-                        best_streak    = $3,
-                        total_wagered  = total_wagered + $4,
-                        total_won      = total_won + $5
+                        best_streak = $3,
+                        total_wagered = total_wagered + $4,
+                        total_won = total_won + $5
                     WHERE id = $1
                 """, user_id, new_streak, new_best, wagered_value, won_value)
             else:
                 await conn.execute("""
                     UPDATE users SET
-                        total_games    = total_games + 1,
+                        total_games = total_games + 1,
                         current_streak = 0,
-                        total_wagered  = total_wagered + $2
+                        total_wagered = total_wagered + $2
                     WHERE id = $1
                 """, user_id, wagered_value)
 
 async def get_profile(pool, user_id: int):
-    """Full profile with all stats in one query."""
     row = await pool.fetchrow("""
         SELECT u.id, u.username, u.avatar, u.total_games, u.total_wins,
                u.current_streak, u.best_streak, u.total_wagered, u.total_won,
@@ -148,11 +133,11 @@ async def get_inventory(pool: asyncpg.Pool, user_id: int):
     return await pool.fetch("""
         SELECT i.id,
                b.name, b.base_value, b.tier, b.emoji, b.image_url,
-               m.name  AS mutation, m.multiplier, i.traits, i.in_use,
+               m.name AS mutation, m.multiplier, i.traits, i.in_use,
                ROUND(b.base_value * m.multiplier * (1 + i.traits * 0.07), 2) AS value
         FROM inventory i
         JOIN brainrots b ON i.brainrot_id = b.id
-        JOIN mutations  m ON i.mutation_id  = m.id
+        JOIN mutations m ON i.mutation_id = m.id
         WHERE i.user_id = $1
         ORDER BY value DESC
     """, user_id)
@@ -164,13 +149,12 @@ async def get_inventory_total(pool: asyncpg.Pool, user_id: int) -> float:
         ), 0)
         FROM inventory i
         JOIN brainrots b ON i.brainrot_id = b.id
-        JOIN mutations  m ON i.mutation_id  = m.id
+        JOIN mutations m ON i.mutation_id = m.id
         WHERE i.user_id = $1
     """, user_id)
     return float(result)
 
 async def get_me_data(pool: asyncpg.Pool, user_id: int) -> dict:
-    """Single query for /api/me — returns inventory total, sabcoins, and login_code."""
     row = await pool.fetchrow("""
         SELECT
             u.login_code,
@@ -187,8 +171,8 @@ async def get_me_data(pool: asyncpg.Pool, user_id: int) -> dict:
         return {"inventory_value": 0.0, "sabcoins": 0.0, "login_code": None}
     return {
         "inventory_value": float(row["inventory_value"] or 0),
-        "sabcoins":        float(row["sabcoins"] or 0),
-        "login_code":      row["login_code"],
+        "sabcoins": float(row["sabcoins"] or 0),
+        "login_code": row["login_code"],
     }
 
 async def add_item_to_inventory(pool: asyncpg.Pool, user_id: int, brainrot_id: int, mutation_id: int, traits: int = 0) -> int:
@@ -213,7 +197,7 @@ async def get_bot_stock(pool: asyncpg.Pool):
                ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) AS value
         FROM bot_stock s
         JOIN brainrots b ON s.brainrot_id = b.id
-        JOIN mutations  m ON s.mutation_id  = m.id
+        JOIN mutations m ON s.mutation_id = m.id
         ORDER BY value DESC
     """)
 
@@ -250,16 +234,15 @@ async def get_open_coinflips(pool: asyncpg.Pool):
                m.name AS mutation, m.multiplier, i.traits,
                ROUND(b.base_value * m.multiplier * (1 + i.traits * 0.07), 2) AS value
         FROM coinflip_games g
-        JOIN users     u ON g.creator_id           = u.id
+        JOIN users u ON g.creator_id = u.id
         JOIN inventory i ON g.creator_inventory_id = i.id
-        JOIN brainrots b ON i.brainrot_id           = b.id
-        JOIN mutations m ON i.mutation_id            = m.id
+        JOIN brainrots b ON i.brainrot_id = b.id
+        JOIN mutations m ON i.mutation_id = m.id
         WHERE g.status = 'open'
         ORDER BY value DESC
     """)
 
 async def claim_coinflip(pool: asyncpg.Pool, game_id: int, joiner_id: int) -> dict | None:
-    """Atomically claim an open coinflip. Returns game row or None if already taken."""
     row = await pool.fetchrow("""
         UPDATE coinflip_games
         SET joiner_id=$2, status='processing'
@@ -276,7 +259,6 @@ async def complete_coinflip(pool: asyncpg.Pool, game_id: int, winner_id: int):
     """, game_id, winner_id)
 
 async def cancel_coinflip(pool: asyncpg.Pool, game_id: int):
-    # Release in_use lock on the wagered item when cancelling
     game = await pool.fetchrow("SELECT creator_inventory_id FROM coinflip_games WHERE id=$1 AND status='open'", game_id)
     await pool.execute(
         "UPDATE coinflip_games SET status='cancelled' WHERE id=$1 AND status='open'",
@@ -287,16 +269,24 @@ async def cancel_coinflip(pool: asyncpg.Pool, game_id: int):
 
 async def join_coinflip_bot(pool: asyncpg.Pool, game_id: int, bot_stock_id: int,
                              winner_id: int | None, user_id: int):
-    """Bot auto-joins a coinflip. winner_id=user_id means user wins, None means bot wins.
-    NOTE: Does NOT delete user inventory item — caller must handle that (for tax ordering)."""
+    """
+    Bot auto-joins a coinflip.
+    - winner_id == user_id  → user wins: bot stock item goes to user inventory
+    - winner_id is None     → bot wins: user's wagered item goes to bot stock
+      (NOTE: caller must DELETE the inventory item separately AFTER this call)
+    """
     async with pool.acquire() as conn:
         async with conn.transaction():
-            game = await conn.fetchrow("SELECT * FROM coinflip_games WHERE id=$1 AND status IN ('open','processing')", game_id)
+            game = await conn.fetchrow(
+                "SELECT * FROM coinflip_games WHERE id=$1 AND status IN ('open','processing')", game_id
+            )
             if not game:
                 return
+
             bot_item = await conn.fetchrow("SELECT * FROM bot_stock WHERE id=$1", bot_stock_id)
             if not bot_item:
                 return
+
             if winner_id == user_id:
                 # User wins — move bot stock item to user inventory
                 await conn.execute("""
@@ -304,12 +294,25 @@ async def join_coinflip_bot(pool: asyncpg.Pool, game_id: int, bot_stock_id: int,
                     VALUES ($1, $2, $3, $4)
                 """, user_id, bot_item["brainrot_id"], bot_item["mutation_id"], bot_item["traits"])
                 await conn.execute("DELETE FROM bot_stock WHERE id=$1", bot_stock_id)
-            # Mark game completed — joiner_id NULL means bot joined (no FK violation)
+            else:
+                # FIX: Bot wins — move the user's wagered item to bot stock.
+                # The inventory row is deleted by the caller AFTER this function,
+                # so here we just insert a copy into bot_stock from the game record.
+                wagered = await conn.fetchrow(
+                    "SELECT brainrot_id, mutation_id, traits FROM inventory WHERE id=$1",
+                    game["creator_inventory_id"]
+                )
+                if wagered:
+                    await conn.execute("""
+                        INSERT INTO bot_stock (brainrot_id, mutation_id, traits)
+                        VALUES ($1, $2, $3)
+                    """, wagered["brainrot_id"], wagered["mutation_id"], wagered["traits"])
+                # Bot stock item stays (bot keeps its own item since bot won)
+
             await conn.execute(
                 "UPDATE coinflip_games SET status='completed', completed_at=NOW() WHERE id=$1",
                 game_id
             )
-
 
 # ─── UPGRADER ─────────────────────────────────────────────────────────────────
 
@@ -317,7 +320,7 @@ async def record_upgrade(pool: asyncpg.Pool, user_id: int, offered_inv_id: int,
                           target_stock_id: int, win_chance: float, roll: float, won: bool):
     await pool.execute("""
         INSERT INTO upgrade_games
-            (user_id, offered_inventory_id, target_bot_stock_id, win_chance, roll, won)
+        (user_id, offered_inventory_id, target_bot_stock_id, win_chance, roll, won)
         VALUES ($1, $2, $3, $4, $5, $6)
     """, user_id, offered_inv_id, target_stock_id, win_chance, roll, won)
 
@@ -359,11 +362,7 @@ async def send_tip(pool, from_id: int, to_id: int, inventory_id: int) -> dict:
             )
             return {"success": True}
 
-async def record_tip(pool, from_id: int, to_id: int, inventory_id: int):
-    await pool.execute("""
-        INSERT INTO tips (from_user_id, to_user_id, inventory_id)
-        VALUES ($1, $2, $3)
-    """, from_id, to_id, inventory_id)
+# NOTE: record_tip was removed — it was a duplicate of send_tip and caused double inserts
 
 # ─── LEADERBOARD ──────────────────────────────────────────────────────────────
 
@@ -374,9 +373,9 @@ async def get_leaderboard(pool: asyncpg.Pool, limit: int = 10):
                    ROUND(b.base_value * m.multiplier * (1 + i.traits * 0.07), 2)
                ), 0) AS net_worth
         FROM users u
-        LEFT JOIN inventory i ON i.user_id      = u.id
-        LEFT JOIN brainrots b ON i.brainrot_id  = b.id
-        LEFT JOIN mutations m ON i.mutation_id   = m.id
+        LEFT JOIN inventory i ON i.user_id = u.id
+        LEFT JOIN brainrots b ON i.brainrot_id = b.id
+        LEFT JOIN mutations m ON i.mutation_id = m.id
         GROUP BY u.id
         ORDER BY net_worth DESC
         LIMIT $1
@@ -403,7 +402,6 @@ async def get_promo(pool: asyncpg.Pool, code: str):
     """, code.upper())
 
 async def redeem_promo(pool: asyncpg.Pool, code: str, user_id: int) -> dict:
-    """Returns dict with keys: success, reason, item_name"""
     async with pool.acquire() as conn:
         async with conn.transaction():
             promo = await conn.fetchrow("""
@@ -425,23 +423,17 @@ async def redeem_promo(pool: asyncpg.Pool, code: str, user_id: int) -> dict:
             )
             if already:
                 return {"success": False, "reason": "You already redeemed this code"}
-            # Give item to user
             await conn.execute("""
                 INSERT INTO inventory (user_id, brainrot_id, mutation_id, traits)
                 VALUES ($1, $2, $3, $4)
             """, user_id, promo["brainrot_id"], promo["mutation_id"], promo["traits"])
-            await conn.execute(
-                "UPDATE promo_codes SET redeems=redeems+1 WHERE id=$1", promo["id"]
-            )
+            await conn.execute("UPDATE promo_codes SET redeems=redeems+1 WHERE id=$1", promo["id"])
             await conn.execute(
                 "INSERT INTO promo_redemptions (code_id, user_id) VALUES ($1, $2)",
                 promo["id"], user_id
             )
-            # Deactivate if maxed
             if promo["redeems"] + 1 >= promo["max_redeems"]:
-                await conn.execute(
-                    "UPDATE promo_codes SET active=FALSE WHERE id=$1", promo["id"]
-                )
+                await conn.execute("UPDATE promo_codes SET active=FALSE WHERE id=$1", promo["id"])
             return {"success": True, "item_name": promo["item_name"],
                     "emoji": promo["emoji"], "mutation": promo["mutation_name"]}
 
@@ -469,7 +461,6 @@ async def credit_sabcoins(pool, user_id: int, amount: float):
     )
 
 async def debit_sabcoins(pool, user_id: int, amount: float) -> bool:
-    """Deduct coins atomically. Returns False if insufficient balance."""
     async with pool.acquire() as conn:
         async with conn.transaction():
             bal = await conn.fetchval(
@@ -496,7 +487,6 @@ async def get_deposit(pool, order_id: str):
     )
 
 async def confirm_deposit(pool, order_id: str) -> dict:
-    """Credit coins to user. Returns success dict."""
     async with pool.acquire() as conn:
         async with conn.transaction():
             dep = await conn.fetchrow(
@@ -520,16 +510,14 @@ async def confirm_deposit(pool, order_id: str) -> dict:
 # ─── MARKETPLACE ──────────────────────────────────────────────────────────────
 
 async def create_listing(pool, seller_id: int, inventory_id: int, price: float):
-    """Mark item in_use and create listing atomically. Returns None if item already in use."""
     async with pool.acquire() as conn:
         async with conn.transaction():
-            # Atomic claim — only proceeds if in_use=FALSE
             claimed = await conn.fetchval(
                 "UPDATE inventory SET in_use=TRUE WHERE id=$1 AND in_use=FALSE RETURNING id",
                 inventory_id
             )
             if not claimed:
-                return None  # already in use
+                return None
             return await conn.fetchval("""
                 INSERT INTO marketplace_listings (seller_id, inventory_id, price_coins)
                 VALUES ($1, $2, $3) RETURNING id
@@ -543,10 +531,10 @@ async def get_listings(pool):
                m.name AS mutation, m.multiplier, i.traits,
                ROUND(b.base_value * m.multiplier * (1 + i.traits * 0.07), 2) AS item_value
         FROM marketplace_listings l
-        JOIN users u     ON l.seller_id    = u.id
+        JOIN users u ON l.seller_id = u.id
         JOIN inventory i ON l.inventory_id = i.id
-        JOIN brainrots b ON i.brainrot_id  = b.id
-        JOIN mutations m ON i.mutation_id  = m.id
+        JOIN brainrots b ON i.brainrot_id = b.id
+        JOIN mutations m ON i.mutation_id = m.id
         WHERE l.status = 'active'
         ORDER BY l.created_at DESC
     """)
@@ -567,40 +555,21 @@ async def buy_listing(pool, listing_id: int, buyer_id: int) -> dict:
             if listing["seller_id"] == buyer_id:
                 return {"success": False, "reason": "Cannot buy your own listing"}
             price = float(listing["price_coins"])
-            # Check buyer balance
-            bal = await conn.fetchval(
-                "SELECT sabcoins FROM users WHERE id=$1 FOR UPDATE", buyer_id
-            )
+            bal = await conn.fetchval("SELECT sabcoins FROM users WHERE id=$1 FOR UPDATE", buyer_id)
             if float(bal or 0) < price:
                 return {"success": False, "reason": "Insufficient SabCoins"}
             seller_gets = round(price * (1 - TAX), 2)
-            tax_burned  = round(price * TAX, 2)
-            # Deduct from buyer
-            await conn.execute(
-                "UPDATE users SET sabcoins = sabcoins - $2 WHERE id=$1", buyer_id, price
-            )
-            # Credit seller
-            await conn.execute(
-                "UPDATE users SET sabcoins = sabcoins + $2 WHERE id=$1",
-                listing["seller_id"], seller_gets
-            )
-            # Transfer item to buyer
-            await conn.execute(
-                "UPDATE inventory SET user_id=$1, in_use=FALSE WHERE id=$2",
-                buyer_id, listing["inventory_id"]
-            )
-            # Mark listing sold
-            await conn.execute(
-                "UPDATE marketplace_listings SET status='sold' WHERE id=$1", listing_id
-            )
-            # Record sale
+            tax_burned = round(price * TAX, 2)
+            await conn.execute("UPDATE users SET sabcoins = sabcoins - $2 WHERE id=$1", buyer_id, price)
+            await conn.execute("UPDATE users SET sabcoins = sabcoins + $2 WHERE id=$1", listing["seller_id"], seller_gets)
+            await conn.execute("UPDATE inventory SET user_id=$1, in_use=FALSE WHERE id=$2", buyer_id, listing["inventory_id"])
+            await conn.execute("UPDATE marketplace_listings SET status='sold' WHERE id=$1", listing_id)
             await conn.execute("""
                 INSERT INTO marketplace_sales
-                    (listing_id, seller_id, buyer_id, price_coins, seller_receives, tax_burned)
+                (listing_id, seller_id, buyer_id, price_coins, seller_receives, tax_burned)
                 VALUES ($1, $2, $3, $4, $5, $6)
             """, listing_id, listing["seller_id"], buyer_id, price, seller_gets, tax_burned)
-            return {"success": True, "item_name": None,
-                    "seller_gets": seller_gets, "tax": tax_burned}
+            return {"success": True, "item_name": None, "seller_gets": seller_gets, "tax": tax_burned}
 
 async def cancel_listing(pool, listing_id: int, user_id: int) -> bool:
     async with pool.acquire() as conn:
@@ -611,12 +580,8 @@ async def cancel_listing(pool, listing_id: int, user_id: int) -> bool:
             )
             if not listing:
                 return False
-            await conn.execute(
-                "UPDATE marketplace_listings SET status='cancelled' WHERE id=$1", listing_id
-            )
-            await conn.execute(
-                "UPDATE inventory SET in_use=FALSE WHERE id=$1", listing["inventory_id"]
-            )
+            await conn.execute("UPDATE marketplace_listings SET status='cancelled' WHERE id=$1", listing_id)
+            await conn.execute("UPDATE inventory SET in_use=FALSE WHERE id=$1", listing["inventory_id"])
             return True
 
 # ─── SABCOIN WITHDRAWALS ──────────────────────────────────────────────────────
@@ -624,21 +589,15 @@ async def cancel_listing(pool, listing_id: int, user_id: int) -> bool:
 async def create_withdrawal(pool, user_id: int, amount_coins: float,
                              amount_after_tax: float, tax_burned: float,
                              currency: str, address: str, order_id: str) -> int:
-    """Deduct coins and record withdrawal atomically."""
     async with pool.acquire() as conn:
         async with conn.transaction():
-            bal = await conn.fetchval(
-                "SELECT sabcoins FROM users WHERE id=$1 FOR UPDATE", user_id
-            )
+            bal = await conn.fetchval("SELECT sabcoins FROM users WHERE id=$1 FOR UPDATE", user_id)
             if float(bal or 0) < amount_coins:
-                return None  # insufficient
-            await conn.execute(
-                "UPDATE users SET sabcoins = sabcoins - $2 WHERE id=$1",
-                user_id, amount_coins
-            )
+                return None
+            await conn.execute("UPDATE users SET sabcoins = sabcoins - $2 WHERE id=$1", user_id, amount_coins)
             wid = await conn.fetchval("""
                 INSERT INTO sabcoin_withdrawals
-                    (user_id, amount_coins, amount_after_tax, tax_burned, currency, address, order_id)
+                (user_id, amount_coins, amount_after_tax, tax_burned, currency, address, order_id)
                 VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id
             """, user_id, amount_coins, amount_after_tax, tax_burned, currency, address, order_id)
             return wid
