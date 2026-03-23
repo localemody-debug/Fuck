@@ -80,7 +80,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',s
 /* ── PAGES ── */
 .page{display:none;}
 .page.on{display:block;animation:pgIn .22s ease;}
-#pg-chat.on{display:flex;flex-direction:column;}
+#pg-chat{display:flex!important;flex-direction:column;height:calc(100vh - 58px - 50px);padding:0!important;}
 @keyframes pgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
 .wrap{padding:12px 12px 86px;max-width:480px;margin:0 auto;}
@@ -240,6 +240,9 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',s
 .btn-callbot:hover{border-color:var(--purple);color:var(--purple-l);background:rgba(108,92,231,.07);}
 .btn-callbot svg{width:13px;height:13px;fill:currentColor;}
 
+.trait-btn{padding:7px 4px;border-radius:7px;border:1px solid var(--border);background:var(--card2);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:all .1s;}
+.active-trait{border-color:var(--green)!important;background:rgba(34,197,92,.15)!important;color:var(--green)!important;}
+
 /* ── MUT BADGES ── */
 .mut{display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;}
 .mut-Base{color:var(--t3);}
@@ -346,7 +349,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',s
   flex:1;overflow-y:auto;
   padding:8px 12px;
   display:flex;flex-direction:column;gap:2px;
-  height:calc(100vh - 58px - 42px - 58px);
+  min-height:0;
 }
 .chat-msg{
   display:flex;gap:9px;padding:8px 9px;
@@ -363,6 +366,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',s
 .chat-input-row{
   padding:10px 12px;border-top:1px solid var(--border);
   display:flex;gap:8px;background:var(--bg);
+  flex-shrink:0;
 }
 .chat-inp{
   flex:1;background:var(--card);border:1px solid var(--border);
@@ -552,7 +556,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',s
         </div>
         <button onclick="openPromoModal()" style="background:var(--purple);border:none;border-radius:8px;padding:7px 11px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:Inter,sans-serif;transition:background .15s;" onmouseover="this.style.background='var(--purple-d)'" onmouseout="this.style.background='var(--purple)'">Promo</button>
         <button id="adminBtn" onclick="openAdminPanel()" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:7px 10px;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:Inter,sans-serif;transition:all .15s;">Admin</button>
-        <a href="/auth/logout" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:Inter,sans-serif;text-decoration:none;transition:all .15s;" onmouseover="this.style.color='var(--red)';this.style.borderColor='rgba(242,53,53,0.3)'" onmouseout="this.style.color='var(--t3)';this.style.borderColor='var(--border)'">Logout</a>
+        <button onclick="doLogout()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:Inter,sans-serif;transition:all .15s;" onmouseover="this.style.color='var(--red)';this.style.borderColor='rgba(242,53,53,0.3)'" onmouseout="this.style.color='var(--t3)';this.style.borderColor='var(--border)'">Logout</button>
       </div>
     </div>
   </div>
@@ -959,25 +963,39 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',s
 
     <!-- Add Item tab -->
     <div id="aTabItemPanel" style="display:none;">
-      <div style="font-size:12px;color:var(--t3);margin-bottom:10px;">Add an item to a user's inventory</div>
-      <input id="adminItemUserId" placeholder="User ID..." style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--t1);font-size:13px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box;margin-bottom:8px;">
-      <select id="adminItemBrainrot" style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--t1);font-size:13px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box;margin-bottom:8px;">
-        <option value="">Select item...</option>
-      </select>
-      <select id="adminItemMutation" style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--t1);font-size:13px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box;margin-bottom:8px;">
-        <option value="">Select mutation...</option>
-      </select>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-        <span style="font-size:12px;color:var(--t2);">Traits:</span>
-        <div style="display:flex;gap:6px;">
-          <button onclick="setAdminTraits(0)" id="aTrait0" style="padding:5px 10px;border-radius:7px;border:1px solid var(--green);background:rgba(34,197,92,.15);color:var(--green);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">0</button>
-          <button onclick="setAdminTraits(1)" id="aTrait1" style="padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card2);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">1</button>
-          <button onclick="setAdminTraits(2)" id="aTrait2" style="padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card2);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">2</button>
-          <button onclick="setAdminTraits(3)" id="aTrait3" style="padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card2);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">3</button>
-          <button onclick="setAdminTraits(4)" id="aTrait4" style="padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card2);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">4</button>
-          <button onclick="setAdminTraits(5)" id="aTrait5" style="padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card2);color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">5</button>
-        </div>
+      <div style="font-size:12px;color:var(--t3);margin-bottom:12px;">Add an item to a user's inventory</div>
+
+      <!-- User ID -->
+      <input id="adminItemUserId" placeholder="User ID..." type="number" style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--t1);font-size:13px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box;margin-bottom:10px;">
+
+      <!-- Brainrot search + list -->
+      <div style="font-size:11px;color:var(--t3);margin-bottom:5px;">Item</div>
+      <input id="adminBrainrotSearch" placeholder="Search brainrot name..." oninput="filterAdminBrainrots()" style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--t1);font-size:12px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box;margin-bottom:6px;">
+      <div id="adminBrainrotList" style="max-height:160px;overflow-y:auto;background:var(--card2);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;"></div>
+
+      <!-- Mutation grid -->
+      <div style="font-size:11px;color:var(--t3);margin-bottom:6px;">Mutation</div>
+      <div id="adminMutationGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;"></div>
+
+      <!-- Traits -->
+      <div style="font-size:11px;color:var(--t3);margin-bottom:6px;">Traits</div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px;">
+        <button onclick="setAdminTraits(0)" id="aTrait0" class="trait-btn active-trait">0</button>
+        <button onclick="setAdminTraits(1)" id="aTrait1" class="trait-btn">1</button>
+        <button onclick="setAdminTraits(2)" id="aTrait2" class="trait-btn">2</button>
+        <button onclick="setAdminTraits(3)" id="aTrait3" class="trait-btn">3</button>
+        <button onclick="setAdminTraits(4)" id="aTrait4" class="trait-btn">4</button>
+        <button onclick="setAdminTraits(5)" id="aTrait5" class="trait-btn">5</button>
+        <button onclick="setAdminTraits(6)" id="aTrait6" class="trait-btn">6</button>
+        <button onclick="setAdminTraits(7)" id="aTrait7" class="trait-btn">7</button>
+        <button onclick="setAdminTraits(8)" id="aTrait8" class="trait-btn">8</button>
+        <button onclick="setAdminTraits(9)" id="aTrait9" class="trait-btn">9</button>
+        <button onclick="setAdminTraits(10)" id="aTrait10" class="trait-btn">10</button>
       </div>
+
+      <!-- Preview -->
+      <div id="adminItemPreview" style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--t3);text-align:center;">Select an item and mutation to preview</div>
+
       <button onclick="doAdminAddItem()" style="width:100%;background:var(--green);border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;color:#000;cursor:pointer;font-family:Inter,sans-serif;">Add Item</button>
       <div id="adminItemResult" style="margin-top:10px;font-size:12px;color:var(--green);text-align:center;"></div>
     </div>
@@ -1491,6 +1509,21 @@ async function joinFlip(id){
 
 // ── CALL BOT ───────────────────────────────────────────────────────
 let CALLINGBOT=false;
+async function doLogout(){
+  try{
+    await fetch('/auth/logout', {method:'GET', redirect:'manual'});
+  }catch(e){}
+  ME = null;
+  document.getElementById('authZone').classList.remove('hidden');
+  document.getElementById('userZone').classList.add('hidden');
+  document.getElementById('adminBtn').style.display = 'none';
+  document.getElementById('navBal').textContent = '0';
+  document.getElementById('navCoins').textContent = '0';
+  // Clear session cookie client-side too
+  document.cookie = 'session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  toast('Logged out');
+  loadFlips();
+}
 function notCreatorToast(){toast("Only the creator can call bot",true);}
 
 // ─── ADMIN TABS ───────────────────────────────────────────────────
@@ -1510,26 +1543,91 @@ function setAdminTab(tab){
 
 function setAdminTraits(n){
   ADMIN_TRAITS=n;
-  for(let i=0;i<=5;i++){
+  for(let i=0;i<=10;i++){
     const b=document.getElementById('aTrait'+i);
-    if(i===n){b.style.borderColor='var(--green)';b.style.background='rgba(34,197,92,.15)';b.style.color='var(--green)';}
-    else{b.style.borderColor='var(--border)';b.style.background='var(--card2)';b.style.color='var(--t3)';}
+    if(!b) continue;
+    if(i===n){b.classList.add('active-trait');}
+    else{b.classList.remove('active-trait');}
   }
+  updateAdminPreview();
 }
 
 let ADMIN_BRAINROTS=[], ADMIN_MUTATIONS=[];
+let ADMIN_SEL_BRAINROT=null, ADMIN_SEL_MUTATION=null;
+
 async function loadAdminItemDropdowns(){
   if(ADMIN_BRAINROTS.length) return;
   try{
     const [brainrots, mutations] = await Promise.all([api('/api/brainrots'), api('/api/mutations')]);
-    const bSel=document.getElementById('adminItemBrainrot');
-    const mSel=document.getElementById('adminItemMutation');
-    bSel.innerHTML='<option value="">Select item...</option>';
-    mSel.innerHTML='<option value="">Select mutation...</option>';
-    brainrots.forEach(b=>{ const o=document.createElement('option'); o.value=b.id; o.textContent=b.emoji+' '+b.name+' ('+b.tier+')'; bSel.appendChild(o); });
-    mutations.forEach(m=>{ const o=document.createElement('option'); o.value=m.id; o.textContent=m.name+' ('+m.multiplier+'x)'; mSel.appendChild(o); });
     ADMIN_BRAINROTS=brainrots; ADMIN_MUTATIONS=mutations;
-  }catch(e){toast('Failed to load items',true);console.error(e);}
+    renderAdminBrainrotList(brainrots);
+    renderAdminMutationGrid(mutations);
+  }catch(e){toast('Failed to load items',true);}
+}
+
+function renderAdminBrainrotList(list){
+  const el=document.getElementById('adminBrainrotList');
+  if(!el) return;
+  el.innerHTML=list.map(b=>`
+    <div onclick="selectAdminBrainrot(${b.id})" id="abr-${b.id}" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;" onmouseover="this.style.background='var(--card3)'" onmouseout="this.style.background=''">
+      <span style="font-size:16px;">${b.emoji}</span>
+      <div style="flex:1;">
+        <div style="font-size:12px;font-weight:700;color:var(--t1);">${b.name}</div>
+        <div style="font-size:10px;color:var(--t3);">${b.tier.toUpperCase()} — ⬡${b.base_value}</div>
+      </div>
+    </div>`).join('');
+}
+
+function filterAdminBrainrots(){
+  const q=document.getElementById('adminBrainrotSearch').value.toLowerCase();
+  const filtered=ADMIN_BRAINROTS.filter(b=>b.name.toLowerCase().includes(q));
+  renderAdminBrainrotList(filtered);
+}
+
+function selectAdminBrainrot(id){
+  ADMIN_SEL_BRAINROT=ADMIN_BRAINROTS.find(b=>b.id==id);
+  // Highlight selected
+  document.querySelectorAll('[id^="abr-"]').forEach(el=>{
+    el.style.background = el.id==='abr-'+id ? 'rgba(34,197,92,.1)' : '';
+    el.style.borderLeft = el.id==='abr-'+id ? '3px solid var(--green)' : '';
+  });
+  updateAdminPreview();
+}
+
+function renderAdminMutationGrid(mutations){
+  const el=document.getElementById('adminMutationGrid');
+  if(!el) return;
+  el.innerHTML=mutations.map(m=>`
+    <button onclick="selectAdminMutation(${m.id})" id="amut-${m.id}" style="padding:8px 4px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:10px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:all .1s;text-align:center;">
+      <div>${m.name}</div>
+      <div style="font-size:9px;color:var(--t3);margin-top:2px;">${m.multiplier}x</div>
+    </button>`).join('');
+}
+
+function selectAdminMutation(id){
+  ADMIN_SEL_MUTATION=ADMIN_MUTATIONS.find(m=>m.id==id);
+  document.querySelectorAll('[id^="amut-"]').forEach(el=>{
+    const active = el.id==='amut-'+id;
+    el.style.borderColor=active?'var(--purple)':'var(--border)';
+    el.style.background=active?'rgba(108,92,231,.15)':'var(--card2)';
+    el.style.color=active?'var(--purple-l)':'var(--t2)';
+  });
+  updateAdminPreview();
+}
+
+function updateAdminPreview(){
+  const el=document.getElementById('adminItemPreview');
+  if(!el) return;
+  if(!ADMIN_SEL_BRAINROT && !ADMIN_SEL_MUTATION){
+    el.textContent='Select an item and mutation to preview'; return;
+  }
+  const b=ADMIN_SEL_BRAINROT, m=ADMIN_SEL_MUTATION;
+  if(!b||!m){
+    el.textContent=(b?b.emoji+' '+b.name:'?')+' + '+(m?m.name:'?');
+    return;
+  }
+  const val=(b.base_value * m.multiplier * (1 + ADMIN_TRAITS * 0.07)).toFixed(2);
+  el.innerHTML=`<span style="font-size:18px">${b.emoji}</span> <strong style="color:var(--t1)">${b.name}</strong> <span style="color:var(--purple-l)">[${m.name}]</span> +${ADMIN_TRAITS}T <span style="color:var(--amber);font-weight:700;">⬡${fv(parseFloat(val))}</span>`;
 }
 
 async function doAdminAddCoins(){
@@ -1545,14 +1643,19 @@ async function doAdminAddCoins(){
 
 async function doAdminAddItem(){
   const uid=parseInt(document.getElementById('adminItemUserId').value);
-  const brainrot_id=parseInt(document.getElementById('adminItemBrainrot').value);
-  const mutation_id=parseInt(document.getElementById('adminItemMutation').value);
-  if(!uid||!brainrot_id||!mutation_id){toast('Fill in all fields',true);return;}
+  if(!uid){toast('Enter a User ID',true);return;}
+  if(!ADMIN_SEL_BRAINROT){toast('Select a brainrot',true);return;}
+  if(!ADMIN_SEL_MUTATION){toast('Select a mutation',true);return;}
   try{
-    const d=await api('/api/admin/additem',{method:'POST',body:JSON.stringify({user_id:uid,brainrot_id,mutation_id,traits:ADMIN_TRAITS})});
-    const b=ADMIN_BRAINROTS.find(x=>x.id==brainrot_id);
-    const m=ADMIN_MUTATIONS.find(x=>x.id==mutation_id);
-    document.getElementById('adminItemResult').textContent='✅ Added '+(b?b.name:'item')+' ['+(m?m.name:'')+']+'+ADMIN_TRAITS+'T';
+    const d=await api('/api/admin/additem',{method:'POST',body:JSON.stringify({
+      user_id:uid,
+      brainrot_id:ADMIN_SEL_BRAINROT.id,
+      mutation_id:ADMIN_SEL_MUTATION.id,
+      traits:ADMIN_TRAITS
+    })});
+    const res=document.getElementById('adminItemResult');
+    res.style.color='var(--green)';
+    res.textContent='✅ Added '+ADMIN_SEL_BRAINROT.emoji+' '+ADMIN_SEL_BRAINROT.name+' ['+ADMIN_SEL_MUTATION.name+'] +'+ADMIN_TRAITS+'T to user '+uid;
     toast('Item added!');
   }catch(e){toast(e.message||'Error',true);}
 }
