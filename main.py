@@ -1,6 +1,7 @@
 import asyncio, os, sys, threading
 import uvicorn
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # Ensure current directory is in path so all modules resolve
@@ -19,11 +20,8 @@ def run_web():
     )
 
 async def run_bot():
-    try:
-        from bot.bot import bot
-    except ModuleNotFoundError:
-        import bot as bot_module
-        bot = bot_module.bot
+    # FIX: bot.py is at root level — import directly, no sub-package
+    from bot import bot
     await bot.start(os.environ["DISCORD_TOKEN"])
 
 if __name__ == "__main__":
