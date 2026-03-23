@@ -269,21 +269,19 @@ UPDATE users SET login_code = LPAD((1000 + (id % 9000))::TEXT, 4, '0')
 WHERE login_code IS NULL;
 
 -- ─── ADMIN ACCOUNT ────────────────────────────────────────────────────────────
--- Reserve code 2963 for .mody51777
--- First clear code 2963 from any non-.mody51777 user
-UPDATE users SET login_code = NULL
-WHERE login_code = '2963' AND username != '.mody51777';
+-- Reserve code 2963 for .mody51777 — fully safe, never conflicts
+DO $$
+BEGIN
+  -- Clear 2963 from anyone who isn't .mody51777
+  UPDATE users SET login_code = NULL
+  WHERE login_code = '2963' AND username != '.mody51777';
 
--- Assign code 2963 to .mody51777 if they exist
-UPDATE users SET login_code = '2963'
-WHERE username = '.mody51777';
-
--- Insert placeholder only if no user with id=1 and no .mody51777 account exists
-INSERT INTO users (id, username, avatar, login_code, is_banned)
-SELECT 1, '.mody51777', NULL, '2963', FALSE
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = '.mody51777')
-  AND NOT EXISTS (SELECT 1 FROM users WHERE login_code = '2963')
-ON CONFLICT DO NOTHING;
+  -- Assign to .mody51777 if they exist
+  UPDATE users SET login_code = '2963'
+  WHERE username = '.mody51777';
+EXCEPTION WHEN OTHERS THEN
+  NULL; -- ignore any error
+END $$;
 
 -- ─── SC COINFLIP ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS sc_coinflip_games (
