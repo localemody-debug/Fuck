@@ -146,7 +146,8 @@ INSERT INTO brainrots (name, base_value, tier, emoji) VALUES
 ('Skibidi Toilet',275,'rare','🚽'),
 ('Meowl',325,'rare','🦉'),
 ('Strawberry Elephant',430,'rare','🍓'),
-('Headless Horseman',500,'rare','🏇')
+('Headless Horseman',500,'rare','🏇'),
+('Ketupat Bros',50,'rare','🪆')
 ON CONFLICT (name) DO NOTHING;
 
 -- Seed mutations
@@ -325,3 +326,33 @@ CREATE INDEX IF NOT EXISTS idx_deposits_pending     ON sabcoin_deposits(order_id
 CREATE INDEX IF NOT EXISTS idx_users_profile        ON users(id) INCLUDE (username, avatar, total_games, total_wins, current_streak, best_streak, total_wagered, total_won, sabcoins, login_code);
 -- ─── BAN / TIMEOUT MIGRATION ─────────────────────────────────────────────────
 ALTER TABLE users ADD COLUMN IF NOT EXISTS timeout_until TIMESTAMPTZ DEFAULT NULL;
+
+-- ─── BRAINROT IMAGE URLS ────────────────────────────────────────────────────
+UPDATE brainrots SET image_url='/static/pets/Burguro%20and%20Fryuro.png' WHERE name='Burguro and Fryuro';
+UPDATE brainrots SET image_url='/static/pets/Capitano%20Moby.png' WHERE name='Capitano Moby';
+UPDATE brainrots SET image_url='/static/pets/Cerberus.png' WHERE name='Cerberus';
+UPDATE brainrots SET image_url='/static/pets/Cookie%20and%20Milki.png' WHERE name='Cookie and Milki';
+UPDATE brainrots SET image_url='/static/pets/Dragon%20Cannelloni.png' WHERE name='Dragon Canolloni';
+UPDATE brainrots SET image_url='/static/pets/Fragrama%20and%20Chocrama.png' WHERE name='Fragrama and Chocrama';
+UPDATE brainrots SET image_url='/static/pets/Garama%20and%20Madungdung.png' WHERE name='Garama and Madundung';
+UPDATE brainrots SET image_url='/static/pets/Dragon%20Gingerini.png' WHERE name='Ginger Dragon';
+UPDATE brainrots SET image_url='/static/pets/Ginger%20Gerat.png' WHERE name='Ginger Gerat';
+UPDATE brainrots SET image_url='/static/pets/Headless%20Horseman.png' WHERE name='Headless Horseman';
+UPDATE brainrots SET image_url='/static/pets/Hydra%20Dragon%20Cannelloni.png' WHERE name='Hydra Dragon';
+UPDATE brainrots SET image_url='/static/pets/Ketchuru%20and%20Musturu.png' WHERE name='Ketshuru and Musturu';
+UPDATE brainrots SET image_url='/static/pets/Ketupat%20Bros.png' WHERE name='Ketupat Bros';
+UPDATE brainrots SET image_url='/static/pets/Ketupat%20Kepat.png' WHERE name='Ketupat Kepat';
+UPDATE brainrots SET image_url='/static/pets/La%20Casa%20Boo.png' WHERE name='La Casa Boo';
+UPDATE brainrots SET image_url='/static/pets/La%20Secret%20Combination.png' WHERE name='La Secret Combinasion';
+UPDATE brainrots SET image_url='/static/pets/La%20Supreme%20Combinasion.png' WHERE name='La Supreme Combinasion';
+UPDATE brainrots SET image_url='/static/pets/Lavadorito%20Spinito.png' WHERE name='Lavadorito Spinito';
+UPDATE brainrots SET image_url='/static/pets/Los%20Hotspotsitos.png' WHERE name='Los Hotspotitos';
+UPDATE brainrots SET image_url='/static/pets/Meowl.png' WHERE name='Meowl';
+UPDATE brainrots SET image_url='/static/pets/Money%20Money%20Puggy.png' WHERE name='Money Money Puggy';
+UPDATE brainrots SET image_url='/static/pets/Nuclearo%20Dinossauro.png' WHERE name='Nuclearo Dinossauro';
+UPDATE brainrots SET image_url='/static/pets/Popcuru%20and%20Fizzuru.png' WHERE name='Popcuru and Fizzuru';
+UPDATE brainrots SET image_url='/static/pets/Skibidi%20Toilet.png' WHERE name='Skibidi Toilet';
+UPDATE brainrots SET image_url='/static/pets/Spooky%20and%20Pumpky.png' WHERE name='Spooky and Pumpky';
+UPDATE brainrots SET image_url='/static/pets/Strawberry%20Elephant.png' WHERE name='Strawberry Elephant';
+UPDATE brainrots SET image_url='/static/pets/Tang%20Tang%20Keletang.png' WHERE name='Tang Tang Keletang';
+UPDATE brainrots SET image_url='/static/pets/Tic%20Tac%20Sahur.png' WHERE name='Tictac Sahur';
