@@ -270,8 +270,13 @@ async def log_login(username: str, user_id: int, avatar: str):
 @app.on_event("startup")
 async def startup():
     pool = await db.get_pool()
-    with open("schema.sql") as f:
-        await pool.execute(f.read())
+    # Run schema — wrapped so any error never crashes the web server
+    try:
+        schema_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "schema.sql")
+        with open(schema_path) as f:
+            await pool.execute(f.read())
+    except Exception as e:
+        print(f"⚠️ Schema warning (non-fatal): {e}")
     # Cache Discord log channel IDs for this worker
     await _cache_log_channels()
     # Clean up any stuck state from previous crashes
