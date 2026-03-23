@@ -10,6 +10,7 @@ import db
 load_dotenv()
 
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 import time
 
@@ -19,6 +20,11 @@ app = FastAPI(
     redoc_url=None,
 )
 app.add_middleware(GZipMiddleware, minimum_size=500)  # compress responses > 500 bytes
+
+# Serve pet images from /static/pets/
+_pets_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "pets")
+os.makedirs(_pets_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # Simple in-memory rate limiter per IP
