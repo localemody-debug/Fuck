@@ -45,12 +45,28 @@ async def ensure_user(pool_arg, user_id: int, username: str, avatar: str = None)
     """Create user if not exists, assign login_code atomically without collision."""
     import random as _random
 
-    existing = await pool_arg.fetchval("SELECT login_code FROM users WHERE id=$1", user_id)
-    if existing:
+    # Check if user exists at all (not just if they have a code)
+    existing_row = await pool_arg.fetchrow("SELECT id, login_code FROM users WHERE id=$1", user_id)
+
+    if existing_row is not None:
+        # User exists — update name/avatar
         await pool_arg.execute(
             "UPDATE users SET username=$2, avatar=$3 WHERE id=$1",
             user_id, username, avatar
         )
+        # If they somehow have no login_code, assign one now
+        if not existing_row["login_code"]:
+            for attempt in range(50):
+                code = str(_random.randint(1000, 9999))
+                try:
+                    updated = await pool_arg.fetchval(
+                        "UPDATE users SET login_code=$2 WHERE id=$1 AND login_code IS NULL RETURNING id",
+                        user_id, code
+                    )
+                    if updated:
+                        break
+                except Exception:
+                    continue
         return
 
     # New user — find a unique code and insert atomically
@@ -69,7 +85,6 @@ async def ensure_user(pool_arg, user_id: int, username: str, avatar: str = None)
         except Exception as e:
             if "login_code" in str(e) and attempt < 49:
                 continue
-            # Other error or ran out of attempts — insert without code
             await pool_arg.execute("""
                 INSERT INTO users (id, username, avatar)
                 VALUES ($1, $2, $3)
@@ -176,6 +191,12 @@ async def get_me_data(pool: asyncpg.Pool, user_id: int) -> dict:
     }
 
 async def add_item_to_inventory(pool: asyncpg.Pool, user_id: int, brainrot_id: int, mutation_id: int, traits: int = 0) -> int:
+    # Auto-create user row if they don't exist yet (e.g. added via site before first login)
+    await pool.execute("""
+        INSERT INTO users (id, username, avatar)
+        VALUES ($1, 'Unknown', NULL)
+        ON CONFLICT (id) DO NOTHING
+    """, user_id)
     return await pool.fetchval("""
         INSERT INTO inventory (user_id, brainrot_id, mutation_id, traits)
         VALUES ($1, $2, $3, $4) RETURNING id
