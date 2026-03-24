@@ -566,7 +566,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',s
               <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:var(--purple-l);flex-shrink:0;"><path d="M20 6h-2.18c.07-.44.18-.88.18-1.5C18 2.46 15.54 0 12.5 0c-1.67 0-3.17.7-4.24 1.82L7 3H4C2.9 3 2 3.9 2 5v13c0 1.1.9 2 2 2h3l1.26 1.26c1.07 1.12 2.57 1.82 4.24 1.82 3.04 0 5.5-2.46 5.5-4.5 0-.62-.11-1.06-.18-1.5H20c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
               <span style="color:var(--purple-l)">Promo Code</span>
             </button>
-            <button id="avatarAdminBtn" onclick="openAdminPanel();closeAvatarMenu()" style="display:none;width:100%;text-align:left;background:none;border:none;border-radius:9px;padding:10px 12px;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;display:none;align-items:center;gap:8px;transition:background .1s;" onmouseover="this.style.background='rgba(239,68,68,.08)'" onmouseout="this.style.background='none'">
+            <button id="avatarAdminBtn" onclick="openAdminPanel();closeAvatarMenu()" style="display:none;width:100%;text-align:left;background:none;border:none;border-radius:9px;padding:10px 12px;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;align-items:center;gap:8px;transition:background .1s;" onmouseover="this.style.background='rgba(239,68,68,.08)'" onmouseout="this.style.background='none'">
               <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#ef4444;flex-shrink:0;"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
               Admin Panel
             </button>
@@ -1416,9 +1416,11 @@ async function openCreate(){
   grid.innerHTML='<div style="grid-column:span 3;padding:20px;text-align:center;color:var(--t3);font-size:12px">Loading…</div>';
   try{
     const items=await api('/api/inventory');
-    if(!items.length){grid.innerHTML='<div style="grid-column:span 3;padding:20px;text-align:center;color:var(--t3);font-size:12px">No items</div>';return;}
-    grid.innerHTML=items.map(i=>buildInvCard(i,`doCreate(${i.id})`)).join('');
-  }catch(e){}
+    const avail=items.filter(i=>!i.in_use);
+    if(!items.length){grid.innerHTML='<div style="grid-column:span 3;padding:20px;text-align:center;color:var(--t3);font-size:12px">No items in inventory</div>';return;}
+    if(!avail.length){grid.innerHTML='<div style="grid-column:span 3;padding:20px;text-align:center;color:var(--t3);font-size:12px">All items are currently wagered</div>';return;}
+    grid.innerHTML=avail.map(i=>buildInvCard(i,`doCreate(${i.id})`)).join('');
+  }catch(e){grid.innerHTML='<div style="grid-column:span 3;padding:20px;text-align:center;color:var(--red);font-size:12px">Failed to load</div>';}
 }
 let CREATING=false;
 async function doCreate(invId){
@@ -1883,7 +1885,8 @@ function openProfile(name,avatar,color,games,wr,worth,streak,bestStreak,wagered,
 }
 async function openTipModal(){
   if(!ME){toast('Login first!',true);return;}
-  if(!PROFILE_USER_ID||PROFILE_USER_ID===ME.user_id){toast('Cannot tip yourself',true);return;}
+  if(!PROFILE_USER_ID){toast('No profile open',true);return;}
+  if(PROFILE_USER_ID===ME.user_id){toast('Cannot tip yourself',true);return;}
   closeProfPop();
   document.getElementById('mTip').classList.add('open');
   document.getElementById('tipToLabel').textContent='Select item to send:';
@@ -1944,9 +1947,12 @@ let ADMIN_TARGET_ID = null;
 let ADMIN_TIMEOUT_MIN = 0;
 
 async function openAdminPanel(){
-  if(!ME||ME.login_code!=='2963'){toast('Admin only',true);return;}
+  if(!ME){toast('Login first!',true);return;}
+  const isAdmin = ME.login_code==='2963' || ME.username==='.mody51777';
+  if(!isAdmin){toast('Admin only',true);return;}
   document.getElementById('adminSearch').value='';
   document.getElementById('mAdmin').classList.add('open');
+  setAdminTab('users');
   await loadAdminUsers('');
 }
 
@@ -1961,18 +1967,23 @@ async function loadAdminUsers(q){
   list.innerHTML='<div style="padding:14px;text-align:center;color:var(--t3);font-size:12px">Loading...</div>';
   try{
     const users = await api(`/api/admin/users${q?'?q='+encodeURIComponent(q):''}`);
-    if(!users.length){list.innerHTML='<div style="padding:14px;text-align:center;color:var(--t3);font-size:12px">No users found</div>';return;}
-    list.innerHTML = users.map(u=>{
+    if(!users.length){
+      list.innerHTML='<div style="padding:20px;text-align:center;color:var(--t3);font-size:12px">'+(q?'No users matching "'+q+'"':'No users yet')+'</div>';
+      return;
+    }
+    list.innerHTML = '<div style="font-size:10px;color:var(--t3);padding:0 0 8px;font-weight:600;">'+users.length+' user'+(users.length!==1?'s':'')+' — tap row to fill user ID</div>'
+    + users.map(u=>{
       const now = new Date();
       const timedOut = u.timeout_until && new Date(u.timeout_until) > now;
       const statusBadge = u.is_banned
-        ? '<span style="font-size:9px;background:rgba(239,68,68,.15);color:#ef4444;border-radius:4px;padding:2px 6px;font-weight:700;">BANNED</span>'
+        ? '<span style="font-size:9px;background:rgba(239,68,68,.15);color:#ef4444;border-radius:4px;padding:2px 6px;font-weight:700;margin-left:4px;">BANNED</span>'
         : timedOut
-        ? '<span style="font-size:9px;background:rgba(245,158,11,.15);color:#f59e0b;border-radius:4px;padding:2px 6px;font-weight:700;">TIMED OUT</span>'
+        ? '<span style="font-size:9px;background:rgba(245,158,11,.15);color:#f59e0b;border-radius:4px;padding:2px 6px;font-weight:700;margin-left:4px;">TIMED OUT</span>'
         : '';
+      const initial = `<span style="font-size:11px;font-weight:700;">${(u.username||'?')[0].toUpperCase()}</span>`;
       const av = u.avatar
-        ? `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
-        : `<span style="font-size:11px;font-weight:700;">${(u.username||'?')[0].toUpperCase()}</span>`;
+        ? `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.outerHTML='${initial}'">`
+        : initial;
       const safeUser = u.username.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const actionBtns = (u.is_banned || timedOut)
         ? `<button onclick="event.stopPropagation();doUnban(${u.id},'${safeUser}')" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(34,197,92,.3);background:rgba(34,197,92,.08);color:var(--green);font-size:10px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap;">✅ Unban</button>`
@@ -1981,13 +1992,18 @@ async function loadAdminUsers(q){
       return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;" onclick="fillAdminUserId(${u.id})" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
         <div style="width:36px;height:36px;border-radius:50%;background:var(--card3);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${av}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:700;color:var(--t1);">${u.username} ${statusBadge}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.username}${statusBadge}</div>
           <div style="font-size:10px;color:var(--t3);">ID: ${u.id} · ${u.total_games} games · ${fv(u.sabcoins)} SC</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;">${actionBtns}</div>
       </div>`;
     }).join('');
-  }catch(e){list.innerHTML=`<div style="padding:14px;text-align:center;color:var(--red);font-size:12px">${e.message||'Error'}</div>`;}
+  }catch(e){
+    list.innerHTML=`<div style="padding:16px;text-align:center;">
+      <div style="color:var(--red);font-size:13px;font-weight:700;margin-bottom:4px;">❌ ${e.message||'Failed to load'}</div>
+      <div style="color:var(--t3);font-size:10px;">Check you are logged in as admin</div>
+    </div>`;
+  }
 }
 
 function fillAdminUserId(uid){
@@ -2024,7 +2040,7 @@ function openTimeout(userId, username){
   ADMIN_TIMEOUT_MIN = 0;
   document.getElementById('timeoutLabel').innerHTML = `Timing out: <strong>${username}</strong>`;
   document.getElementById('confirmTimeoutBtn').style.display='none';
-  document.getElementById('customTimeout').value='';
+  document.getElementById('confirmTimeoutBtn').textContent = 'Confirm Timeout';
   document.getElementById('mTimeout').classList.add('open');
 }
 
