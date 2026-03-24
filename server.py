@@ -1423,3 +1423,199 @@ async def catch_all(request: Request, page: str):
         return templates.TemplateResponse(f"{page}.html", {"request": request})
     except Exception:
         return templates.TemplateResponse("index.html", {"request": request})
+# ════════════════════════════════════════════════════════════════════════════
+# PATCH FILE — append these routes into server.py (before the last line)
+# or paste them at the bottom of server.py just above any `if __name__` block
+# ════════════════════════════════════════════════════════════════════════════
+
+# ─── ADMIN: LIST ALL SITE USERS (for dropdowns) ──────────────────────────────
+# FIX: Instead of having admins type raw user IDs, expose a /api/admin/users
+#      endpoint that returns every user who has ever logged in on the site.
+#      The admin panel JS can populate a <select> from this.
+
+@app.get("/api/admin/users")
+async def api_admin_users(request: Request):
+    await require_admin(request)
+    pool = await db.get_pool()
+    rows = await pool.fetch("""
+        SELECT id, username, avatar,
+               COALESCE(sabcoins, 0) AS sabcoins,
+               is_banned,
+               timeout_until
+        FROM users
+        ORDER BY username ASC
+    """)
+    return JSONResponse([{
+        "id":            r["id"],
+        "username":      r["username"],
+        "avatar":        r["avatar"],
+        "sabcoins":      float(r["sabcoins"]),
+        "is_banned":     r["is_banned"],
+        "timeout_until": r["timeout_until"].isoformat() if r["timeout_until"] else None,
+    } for r in rows])
+
+
+# ─── ADMIN: ADD ITEM TO USER INVENTORY ───────────────────────────────────────
+# FIX: The site admin panel had no endpoint to add items — it relied purely on
+#      the Discord bot.  This adds a direct web endpoint so the admin panel
+#      "Add Item" form actually works.
+
+@app.post("/api/admin/additem")
+async def api_admin_additem(request: Request):
+    await require_admin(request)
+    body = await request.json()
+
+    user_id     = body.get("user_id")
+    brainrot_id = body.get("brainrot_id")
+    mutation_id = body.get("mutation_id")
+    traits      = int(body.get("traits", 0))
+
+    if not user_id or not brainrot_id or not mutation_id:
+        raise HTTPException(400, "Missing user_id, brainrot_id, or mutation_id")
+
+    pool = await db.get_pool()
+
+    # Ensure user row exists (they may have been created externally)
+    user = await pool.fetchrow("SELECT id, username, avatar FROM users WHERE id=$1", int(user_id))
+    if not user:
+        raise HTTPException(404, "User not found — they need to log in on the site first")
+
+    inv_id = await db.add_item_to_inventory(pool, int(user_id), int(brainrot_id), int(mutation_id), traits)
+
+    # Fetch display info for the response
+    row = await pool.fetchrow("""
+        SELECT b.name, b.emoji, m.name AS mutation, m.multiplier,
+               ROUND(b.base_value * m.multiplier * (1 + $3 * 0.07), 2) AS value
+        FROM brainrots b, mutations m
+        WHERE b.id=$1 AND m.id=$2
+    """, int(brainrot_id), int(mutation_id), traits)
+
+    return JSONResponse({
+        "success":    True,
+        "inv_id":     inv_id,
+        "item_name":  row["name"] if row else "?",
+        "emoji":      row["emoji"] if row else "",
+        "mutation":   row["mutation"] if row else "?",
+        "value":      float(row["value"]) if row else 0,
+    })
+
+
+# ─── ADMIN: ADD SABCOINS TO USER ─────────────────────────────────────────────
+# FIX: Coins weren't addable from the site — only via OxaPay webhook (real
+#      payment).  This lets admins credit coins manually.
+
+@app.post("/api/admin/addcoins")
+async def api_admin_addcoins(request: Request):
+    await require_admin(request)
+    body   = await request.json()
+    user_id = body.get("user_id")
+    amount  = float(body.get("amount", 0))
+
+    if not user_id:
+        raise HTTPException(400, "Missing user_id")
+    if amount <= 0:
+        raise HTTPException(400, "Amount must be positive")
+
+    pool = await db.get_pool()
+    user = await pool.fetchrow("SELECT id, username FROM users WHERE id=$1", int(user_id))
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    await db.credit_sabcoins(pool, int(user_id), amount)
+    new_balance = await db.get_sabcoins(pool, int(user_id))
+
+    return JSONResponse({
+        "success":     True,
+        "username":    user["username"],
+        "added":       amount,
+        "new_balance": new_balance,
+    })
+
+
+# ─── ADMIN: BAN / UNBAN USER ─────────────────────────────────────────────────
+# FIX: The old admin panel had a "Ban" button but NO "Unban" button.
+#      This single endpoint handles both directions via {"banned": true/false}.
+
+@app.post("/api/admin/setban")
+async def api_admin_setban(request: Request):
+    await require_admin(request)
+    body    = await request.json()
+    user_id = body.get("user_id")
+    banned  = bool(body.get("banned", True))
+
+    if not user_id:
+        raise HTTPException(400, "Missing user_id")
+
+    pool = await db.get_pool()
+    user = await pool.fetchrow("SELECT id, username FROM users WHERE id=$1", int(user_id))
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    await pool.execute(
+        "UPDATE users SET is_banned=$2 WHERE id=$1",
+        int(user_id), banned
+    )
+
+    action = "banned" if banned else "unbanned"
+    return JSONResponse({"success": True, "username": user["username"], "action": action})
+
+
+# ─── ADMIN: TIMEOUT / UNTIMEOUT USER ─────────────────────────────────────────
+# FIX: Same deal — "Timeout" existed but "Remove Timeout" did not.
+#      Pass {"hours": 0} or {"remove": true} to clear a timeout.
+
+@app.post("/api/admin/settimeout")
+async def api_admin_settimeout(request: Request):
+    await require_admin(request)
+    body    = await request.json()
+    user_id = body.get("user_id")
+    hours   = float(body.get("hours", 0))
+    remove  = bool(body.get("remove", False))
+
+    if not user_id:
+        raise HTTPException(400, "Missing user_id")
+
+    pool = await db.get_pool()
+    user = await pool.fetchrow("SELECT id, username FROM users WHERE id=$1", int(user_id))
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    import datetime as _dt
+    if remove or hours <= 0:
+        await pool.execute(
+            "UPDATE users SET timeout_until=NULL WHERE id=$1", int(user_id)
+        )
+        return JSONResponse({"success": True, "username": user["username"], "action": "timeout_removed"})
+    else:
+        until = _dt.datetime.now(_dt.timezone.utc) + _dt.timedelta(hours=hours)
+        await pool.execute(
+            "UPDATE users SET timeout_until=$2 WHERE id=$1", int(user_id), until
+        )
+        return JSONResponse({
+            "success":      True,
+            "username":     user["username"],
+            "action":       "timed_out",
+            "timeout_until": until.isoformat(),
+        })
+
+
+# ─── ADMIN: GET ALL BRAINROTS + MUTATIONS (for add-item form dropdowns) ──────
+
+@app.get("/api/admin/brainrots")
+async def api_admin_brainrots(request: Request):
+    await require_admin(request)
+    pool = await db.get_pool()
+    rows = await db.get_all_brainrots(pool)
+    return JSONResponse([{
+        "id": r["id"], "name": r["name"], "emoji": r["emoji"],
+        "tier": r["tier"], "base_value": float(r["base_value"])
+    } for r in rows])
+
+@app.get("/api/admin/mutations")
+async def api_admin_mutations(request: Request):
+    await require_admin(request)
+    pool = await db.get_pool()
+    rows = await db.get_all_mutations(pool)
+    return JSONResponse([{
+        "id": r["id"], "name": r["name"], "multiplier": float(r["multiplier"])
+    } for r in rows])
