@@ -476,18 +476,21 @@ async def api_create_coinflip(request: Request):
             ORDER BY RANDOM() LIMIT 1
         """, float(item_value))
         if not bot_item:
+            # Fallback: closest within 3x range only
             bot_item = await pool.fetchrow("""
                 SELECT s.id, s.brainrot_id, s.mutation_id, s.traits,
                        ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) AS value
                 FROM bot_stock s
                 JOIN brainrots b ON s.brainrot_id = b.id
                 JOIN mutations m ON s.mutation_id = m.id
+                WHERE ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2)
+                      BETWEEN $1 * 0.34 AND $1 * 3.0
                 ORDER BY ABS(ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) - $1)
                 LIMIT 1
             """, float(item_value))
         if not bot_item:
             await pool.execute("UPDATE inventory SET in_use=FALSE WHERE id=$1", inv_id)
-            raise HTTPException(400, "Bot stock is empty — cannot call bot")
+            raise HTTPException(400, f"No bot stock item found near your item value (⬡{db.format_value(float(item_value))}). Ask an admin to restock the bot.")
         game_id = await db.create_coinflip(pool, s["user_id"], inv_id, side)
         won = random.random() < 0.475
         vs_bot_item_name = await pool.fetchval(
@@ -583,7 +586,13 @@ async def api_callbot(game_id: int, request: Request):
         WHERE i.id=$1
     """, game["creator_inventory_id"])
     if not wagered:
+        # Rollback game status so it's not stuck
+        await pool.execute("UPDATE coinflip_games SET status='open' WHERE id=$1", game_id)
         raise HTTPException(400, "Wagered item not found")
+
+    wagered_val = float(wagered["value"])
+
+    # Try ±15% range first
     bot_item = await pool.fetchrow("""
         SELECT s.id, s.brainrot_id, s.mutation_id, s.traits,
                ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) AS value
@@ -591,22 +600,31 @@ async def api_callbot(game_id: int, request: Request):
         WHERE ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2)
               BETWEEN $1 * 0.85 AND $1 * 1.15
         ORDER BY RANDOM() LIMIT 1
-    """, float(wagered["value"]))
+    """, wagered_val)
+
     if not bot_item:
+        # Fallback: find closest item but only if it's within 3x the wagered value
+        # (prevents a $1 item matching a $500 bot item)
         bot_item = await pool.fetchrow("""
             SELECT s.id, s.brainrot_id, s.mutation_id, s.traits,
                    ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) AS value
             FROM bot_stock s JOIN brainrots b ON s.brainrot_id=b.id JOIN mutations m ON s.mutation_id=m.id
+            WHERE ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2)
+                  BETWEEN $1 * 0.34 AND $1 * 3.0
             ORDER BY ABS(ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) - $1)
             LIMIT 1
-        """, float(wagered["value"]))
+        """, wagered_val)
+
     if not bot_item:
-        raise HTTPException(400, "Bot stock is empty")
+        # No item anywhere close — rollback and return clear error
+        await pool.execute("UPDATE coinflip_games SET status='open' WHERE id=$1", game_id)
+        raise HTTPException(400, f"No bot stock item found near your item value (⬡{db.format_value(wagered_val)}). Ask an admin to restock the bot.")
+
     won = random.random() < 0.475
     TAX_RATE = 0.15
     taxed = False
     if won:
-        tax_val = float(wagered["value"]) * TAX_RATE
+        tax_val = wagered_val * TAX_RATE
         tax_item = await pool.fetchrow("""
             SELECT i.id, i.brainrot_id, i.mutation_id, i.traits,
                    ROUND(b.base_value * m.multiplier * (1 + i.traits * 0.07), 2) AS val
@@ -617,7 +635,7 @@ async def api_callbot(game_id: int, request: Request):
             ORDER BY ABS(ROUND(b.base_value * m.multiplier * (1 + i.traits * 0.07), 2) - $2) ASC
             LIMIT 1
         """, s["user_id"], tax_val, game["creator_inventory_id"])
-        if tax_item and float(tax_item["val"]) <= float(wagered["value"]):
+        if tax_item and float(tax_item["val"]) <= wagered_val:
             await pool.execute("INSERT INTO bot_stock (brainrot_id, mutation_id, traits) VALUES ($1, $2, $3)", tax_item["brainrot_id"], tax_item["mutation_id"], tax_item["traits"])
             await pool.execute("DELETE FROM inventory WHERE id=$1", tax_item["id"])
             taxed = True
@@ -629,12 +647,12 @@ async def api_callbot(game_id: int, request: Request):
     await db.join_coinflip_bot(pool, game_id, bot_item["id"], s["user_id"] if won else None, s["user_id"])
     await pool.execute("DELETE FROM inventory WHERE id=$1", game["creator_inventory_id"])
     won_val = float(bot_item["value"]) if won else 0.0
-    await db.record_game_result(pool, s["user_id"], won, float(wagered["value"]), won_val)
+    await db.record_game_result(pool, s["user_id"], won, wagered_val, won_val)
     try:
-        await log_callbot(caller_name, s["user_id"], caller_av or "", user_item_name, float(wagered["value"]), bot_item_name, float(bot_item["value"]), won)
+        await log_callbot(caller_name, s["user_id"], caller_av or "", user_item_name, wagered_val, bot_item_name, float(bot_item["value"]), won)
     except Exception:
         pass
-    return JSONResponse({"you_won": won, "taxed": taxed})
+    return JSONResponse({"you_won": won, "taxed": taxed, "bot_item_name": bot_item_name, "bot_item_value": float(bot_item["value"])})
 
 @app.post("/api/upgrade")
 async def api_upgrade(request: Request):
@@ -807,9 +825,10 @@ async def api_sabcoin_deposit(request: Request):
     if amount_usd < 1:
         raise HTTPException(400, "Minimum deposit is $1")
     if not OXAPAY_MERCHANT:
-        raise HTTPException(500, "Payment processor not configured")
+        raise HTTPException(500, "Payment processor not configured — contact admin")
     coins = round(amount_usd * COINS_PER_USD, 2)
     order_id = secrets.token_hex(16)
+    base_url = os.environ.get("BASE_URL", "")
     async with httpx.AsyncClient(timeout=15.0) as client:
         resp = await client.post(f"{OXAPAY_API}/merchants/request", json={
             "merchant": OXAPAY_MERCHANT,
@@ -817,21 +836,26 @@ async def api_sabcoin_deposit(request: Request):
             "currency": "USD",
             "lifeTime": 60,
             "orderId": order_id,
-            "description": f"SabCoin deposit — {coins} coins for {s['username']}",
-            "callbackUrl": f"{os.environ.get('BASE_URL','')}/api/sabcoin/webhook",
-            "returnUrl": f"{os.environ.get('BASE_URL','')}/",
+            "description": f"SabPot deposit — {coins} SC for {s['username']}",
+            "callbackUrl": f"{base_url}/api/sabcoin/webhook",
+            "returnUrl": f"{base_url}/",
         })
         if resp.status_code != 200:
-            raise HTTPException(502, "Payment processor error")
+            raise HTTPException(502, f"Payment processor error ({resp.status_code})")
         data = resp.json()
         if data.get("result") != 100:
             raise HTTPException(502, data.get("message", "Payment error"))
+    # OxaPay v1 uses payLink, v2 uses trackId+payAddress
+    pay_link = data.get("payLink") or data.get("link") or data.get("url") or ""
+    pay_address = data.get("payAddress", "")
+    track_id = data.get("trackId", "")
     pool = await db.get_pool()
-    await db.create_deposit(pool, s["user_id"], order_id, data.get("payAddress", order_id), amount_usd, coins)
+    await db.create_deposit(pool, s["user_id"], order_id, pay_address or order_id, amount_usd, coins)
     return JSONResponse({
         "order_id": order_id,
-        "pay_link": data.get("payLink") or data.get("url", ""),
-        "track_id": data.get("trackId", ""),
+        "pay_link": pay_link,
+        "pay_address": pay_address,
+        "track_id": track_id,
         "coins": coins,
     })
 
@@ -848,7 +872,7 @@ async def oxapay_webhook(request: Request):
     if not dep or dep["status"] == "credited":
         return JSONResponse({"ok": True})
     await pool.execute("UPDATE sabcoin_deposits SET confirmations=$2 WHERE order_id=$1", order_id, confirmations)
-    if confirmations >= 3 and status in ("Confirming", "Paid", "Completed"):
+    if (confirmations >= 3 and status in ("Confirming", "Paid", "Completed")) or status == "Completed":
         result = await db.confirm_deposit(pool, order_id)
         if result["success"]:
             try:
@@ -944,24 +968,251 @@ async def api_sabcoin_withdraw(request: Request):
     TAX = 0.10
     after_tax = round(amount_coins * (1 - TAX), 2)
     tax_burned = round(amount_coins * TAX, 2)
+    # Convert SC to USD (10 SC = $1)
+    usd_amount = round(after_tax / 10, 2)
     order_id = secrets.token_hex(16)
     pool = await db.get_pool()
+    # Deduct coins first atomically
     wid = await db.create_withdrawal(pool, s["user_id"], amount_coins, after_tax, tax_burned, currency, address, order_id)
     if not wid:
         raise HTTPException(400, "Insufficient SabCoins")
-    return JSONResponse({"success": True, "withdrawal_id": wid, "after_tax": after_tax, "tax": tax_burned})
+    # Attempt actual OxaPay payout
+    oxapay_success = False
+    oxapay_error = None
+    if OXAPAY_MERCHANT:
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                payout_resp = await client.post(
+                    f"{OXAPAY_API}/merchants/request/payout",
+                    json={
+                        "merchant": OXAPAY_MERCHANT,
+                        "amount": usd_amount,
+                        "currency": currency,
+                        "address": address,
+                        "orderId": order_id,
+                        "description": f"SabPot withdrawal — {after_tax} SC for {s['username']}",
+                    }
+                )
+                payout_data = payout_resp.json()
+                if payout_resp.status_code == 200 and payout_data.get("result") == 100:
+                    oxapay_success = True
+                    # Mark as processing in DB
+                    await pool.execute(
+                        "UPDATE sabcoin_withdrawals SET status='processing' WHERE order_id=$1",
+                        order_id
+                    )
+                else:
+                    oxapay_error = payout_data.get("message", "Payout API error")
+        except Exception as e:
+            oxapay_error = str(e)
+    # Log to Discord
+    try:
+        import discord as _discord
+        status_txt = "✅ Payout sent" if oxapay_success else f"⚠️ Manual required: {oxapay_error or 'No merchant key'}"
+        embed = _discord.Embed(
+            title="💸 SC Withdrawal",
+            description=f"**{s['username']}** withdrew **{amount_coins} SC** → ${usd_amount} {currency}",
+            color=0x22c55e if oxapay_success else 0xf59e0b
+        )
+        embed.add_field(name="Address", value=f"`{address}`", inline=False)
+        embed.add_field(name="After Tax", value=f"{after_tax} SC (~${usd_amount})", inline=True)
+        embed.add_field(name="Status", value=status_txt, inline=True)
+        await post_to_log("🔐login", embed)
+    except Exception:
+        pass
+    return JSONResponse({
+        "success": True,
+        "withdrawal_id": wid,
+        "after_tax": after_tax,
+        "tax": tax_burned,
+        "usd_value": usd_amount,
+        "currency": currency,
+        "payout_sent": oxapay_success,
+    })
 
 # ─── ADMIN ENDPOINTS ──────────────────────────────────────────────────────────
+
+# ─── BRAINROTS / MUTATIONS (used by admin panel) ──────────────────────────────
+
+@app.get("/api/brainrots")
+async def api_brainrots():
+    pool = await db.get_pool()
+    rows = await db.get_all_brainrots(pool)
+    return JSONResponse([{
+        "id": r["id"], "name": r["name"], "base_value": float(r["base_value"]),
+        "tier": r["tier"], "emoji": r["emoji"], "image_url": r["image_url"]
+    } for r in rows])
+
+@app.get("/api/mutations")
+async def api_mutations():
+    pool = await db.get_pool()
+    rows = await db.get_all_mutations(pool)
+    return JSONResponse([{
+        "id": r["id"], "name": r["name"], "multiplier": float(r["multiplier"])
+    } for r in rows])
+
+# ─── ITEM WITHDRAW TICKET ─────────────────────────────────────────────────────
+
+@app.get("/api/sabcoin/currencies")
+async def api_sabcoin_currencies():
+    """Returns supported withdrawal currencies via OxaPay."""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                "https://api.oxapay.com/merchants/allowedCoins",
+                json={"merchant": OXAPAY_MERCHANT} if OXAPAY_MERCHANT else {}
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                currencies = []
+                if isinstance(data, dict) and "data" in data:
+                    currencies = [c if isinstance(c, str) else c.get("currency","") for c in data["data"]]
+                elif isinstance(data, list):
+                    currencies = [c if isinstance(c, str) else c.get("currency","") for c in data]
+                currencies = [c for c in currencies if c]
+                if currencies:
+                    return JSONResponse(currencies)
+    except Exception:
+        pass
+    return JSONResponse(["LTC", "BTC", "ETH", "USDT", "TRX", "BNB", "DOGE"])
+
+@app.post("/api/withdraw/items")
+async def api_withdraw_items(request: Request):
+    """User selects up to 10 inventory items to withdraw — opens a Discord ticket listing them."""
+    s = await require_user(request)
+    body = await request.json()
+    inv_ids = body.get("inventory_ids", [])
+    if not inv_ids or not isinstance(inv_ids, list):
+        raise HTTPException(400, "No items selected")
+    if len(inv_ids) > 10:
+        raise HTTPException(400, "Maximum 10 items per withdrawal")
+
+    pool = await db.get_pool()
+
+    # Verify all items belong to user and are not in_use
+    items = await pool.fetch("""
+        SELECT i.id, b.name, b.emoji, m.name AS mutation, i.traits,
+               ROUND(b.base_value * m.multiplier * (1 + i.traits * 0.07), 2) AS value
+        FROM inventory i
+        JOIN brainrots b ON i.brainrot_id = b.id
+        JOIN mutations m ON i.mutation_id = m.id
+        WHERE i.id = ANY($1) AND i.user_id = $2 AND i.in_use = FALSE
+    """, inv_ids, s["user_id"])
+
+    if not items:
+        raise HTTPException(400, "No valid items found")
+    if len(items) != len(inv_ids):
+        raise HTTPException(400, "Some items are invalid, not yours, or currently in use")
+
+    user = await pool.fetchrow("SELECT username FROM users WHERE id=$1", s["user_id"])
+    username = user["username"] if user else str(s["user_id"])
+
+    # Build item list
+    item_lines = []
+    total_val = 0.0
+    for it in items:
+        mut = f" [{it['mutation']}]" if it['mutation'] != 'Base' else ""
+        traits_str = f" +{it['traits']}T" if it['traits'] > 0 else ""
+        val = float(it['value'])
+        total_val += val
+        item_lines.append(f"• {it['emoji']} **{it['name']}**{mut}{traits_str} — ⬡{db.format_value(val)}")
+
+    # Create Discord ticket via HTTP API (single client block — fixed)
+    guild_id = int(os.environ.get("DISCORD_GUILD_ID", 0))
+    token = os.environ.get("DISCORD_BOT_TOKEN") or os.environ.get("DISCORD_TOKEN", "")
+    ticket_channel_id = None
+
+    if token and guild_id:
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                # Get channels to find ticket category
+                guild_resp = await client.get(
+                    f"https://discord.com/api/v10/guilds/{guild_id}/channels",
+                    headers={"Authorization": f"Bot {token}"}
+                )
+                channels = guild_resp.json() if guild_resp.status_code == 200 else []
+                category_id = None
+                for ch in channels:
+                    if ch.get("type") == 4 and "ticket" in ch.get("name", "").lower():
+                        category_id = ch["id"]
+                        break
+
+                # Create ticket channel
+                overwrites = [
+                    {"id": str(guild_id), "type": 0, "deny": "1024"},
+                    {"id": str(s["user_id"]), "type": 1, "allow": "3072"},
+                ]
+                ch_payload = {
+                    "name": f"withdraw-{username[:20]}",
+                    "type": 0,
+                    "permission_overwrites": overwrites,
+                }
+                if category_id:
+                    ch_payload["parent_id"] = category_id
+
+                ch_resp = await client.post(
+                    f"https://discord.com/api/v10/guilds/{guild_id}/channels",
+                    json=ch_payload,
+                    headers={"Authorization": f"Bot {token}", "Content-Type": "application/json"}
+                )
+
+                if ch_resp.status_code in (200, 201):
+                    ch_data = ch_resp.json()
+                    ticket_channel_id = ch_data["id"]
+
+                    embed = {
+                        "title": "📤 Item Withdrawal Request",
+                        "description": (
+                            f"<@{s['user_id']}> wants to withdraw "
+                            f"**{len(items)} item{'s' if len(items)>1 else ''}** "
+                            f"(Total: ⬡{db.format_value(total_val)})\n\n"
+                            + "\n".join(item_lines)
+                        ),
+                        "color": 0xf59e0b,
+                        "fields": [
+                            {"name": "Username", "value": f"`{username}`", "inline": True},
+                            {"name": "Discord ID", "value": f"`{s['user_id']}`", "inline": True},
+                            {"name": "Total Value", "value": f"⬡{db.format_value(total_val)}", "inline": True},
+                        ],
+                        "footer": {"text": "An admin will process this withdrawal shortly."}
+                    }
+                    await client.post(
+                        f"https://discord.com/api/v10/channels/{ticket_channel_id}/messages",
+                        json={"content": f"<@{s['user_id']}>", "embeds": [embed]},
+                        headers={"Authorization": f"Bot {token}", "Content-Type": "application/json"}
+                    )
+        except Exception as e:
+            print(f"⚠️ Item withdraw ticket error: {e}")
+
+    # Record ticket in DB
+    await db.create_ticket(pool, s["user_id"], "withdraw",
+                           int(ticket_channel_id) if ticket_channel_id else 0)
+
+    return JSONResponse({
+        "success": True,
+        "ticket_created": ticket_channel_id is not None,
+        "item_count": len(items)
+    })
 
 @app.get("/api/admin/users")
 async def api_admin_users(request: Request):
     await require_admin(request)
+    q = request.query_params.get("q", "").strip()
     pool = await db.get_pool()
-    rows = await pool.fetch("""
-        SELECT id, username, avatar, login_code, is_banned, timeout_until,
-               total_games, total_wins, sabcoins, created_at
-        FROM users ORDER BY created_at DESC LIMIT 200
-    """)
+    if q:
+        rows = await pool.fetch("""
+            SELECT id, username, avatar, login_code, is_banned, timeout_until,
+                   total_games, total_wins, sabcoins, created_at
+            FROM users
+            WHERE username ILIKE $1
+            ORDER BY created_at DESC LIMIT 100
+        """, f"%{q}%")
+    else:
+        rows = await pool.fetch("""
+            SELECT id, username, avatar, login_code, is_banned, timeout_until,
+                   total_games, total_wins, sabcoins, created_at
+            FROM users ORDER BY created_at DESC LIMIT 200
+        """)
     return JSONResponse([{
         "id": r["id"], "username": r["username"], "avatar": r["avatar"],
         "login_code": r["login_code"], "is_banned": r["is_banned"],
@@ -980,6 +1231,47 @@ async def api_admin_ban(request: Request):
     pool = await db.get_pool()
     await pool.execute("UPDATE users SET is_banned=$2 WHERE id=$1", int(user_id), banned)
     return JSONResponse({"success": True})
+
+@app.post("/api/admin/unban")
+async def api_admin_unban(request: Request):
+    await require_admin(request)
+    body = await request.json()
+    user_id = body.get("user_id")
+    pool = await db.get_pool()
+    await pool.execute(
+        "UPDATE users SET is_banned=FALSE, timeout_until=NULL WHERE id=$1", int(user_id)
+    )
+    return JSONResponse({"success": True})
+
+@app.post("/api/admin/addcoins")
+async def api_admin_addcoins(request: Request):
+    await require_admin(request)
+    body = await request.json()
+    user_id = int(body.get("user_id", 0))
+    amount = float(body.get("amount", 0))
+    if not user_id or amount <= 0:
+        raise HTTPException(400, "Invalid user_id or amount")
+    pool = await db.get_pool()
+    user = await pool.fetchrow("SELECT id FROM users WHERE id=$1", user_id)
+    if not user:
+        raise HTTPException(404, "User not found")
+    await db.credit_sabcoins(pool, user_id, amount)
+    new_bal = await db.get_sabcoins(pool, user_id)
+    return JSONResponse({"success": True, "new_balance": new_bal})
+
+@app.post("/api/admin/additem")
+async def api_admin_additem(request: Request):
+    await require_admin(request)
+    body = await request.json()
+    user_id = int(body.get("user_id", 0))
+    brainrot_id = int(body.get("brainrot_id", 0))
+    mutation_id = int(body.get("mutation_id", 0))
+    traits = int(body.get("traits", 0))
+    if not user_id or not brainrot_id or not mutation_id:
+        raise HTTPException(400, "Missing fields")
+    pool = await db.get_pool()
+    inv_id = await db.add_item_to_inventory(pool, user_id, brainrot_id, mutation_id, traits)
+    return JSONResponse({"success": True, "inventory_id": inv_id})
 
 @app.post("/api/admin/timeout")
 async def api_admin_timeout(request: Request):
@@ -1012,6 +1304,111 @@ async def api_admin_deactivate_promo(request: Request):
     body = await request.json()
     pool = await db.get_pool()
     await pool.execute("UPDATE promo_codes SET active=FALSE WHERE id=$1", body.get("promo_id"))
+    return JSONResponse({"success": True})
+
+# ─── SC COINFLIP ──────────────────────────────────────────────────────────────
+
+@app.get("/api/coinflip/sc/list")
+async def api_sc_coinflip_list():
+    pool = await db.get_pool()
+    games = await pool.fetch("""
+        SELECT g.id, g.creator_id, g.creator_side, g.amount, g.status, g.created_at,
+               u.username AS creator_name, u.avatar AS creator_avatar
+        FROM sc_coinflip_games g
+        JOIN users u ON g.creator_id = u.id
+        WHERE g.status = 'open'
+        ORDER BY g.created_at DESC
+        LIMIT 50
+    """)
+    return JSONResponse([{
+        "id": g["id"],
+        "creator_id": g["creator_id"],
+        "creator_name": g["creator_name"],
+        "creator_avatar": g["creator_avatar"],
+        "creator_side": g["creator_side"],
+        "value": float(g["amount"]),
+        "amount": float(g["amount"]),
+        "status": g["status"],
+    } for g in games], headers={"Cache-Control": "public, max-age=3"})
+
+@app.post("/api/coinflip/sc/create")
+async def api_sc_coinflip_create(request: Request):
+    s = await require_user(request)
+    body = await request.json()
+    amount = float(body.get("amount", 0))
+    side = body.get("side", "fire")
+    if side not in ("fire", "ice"):
+        raise HTTPException(400, "Invalid side")
+    if amount < 1:
+        raise HTTPException(400, "Minimum bet is 1 SC")
+    pool = await db.get_pool()
+    # Deduct coins atomically
+    ok = await db.debit_sabcoins(pool, s["user_id"], amount)
+    if not ok:
+        raise HTTPException(400, "Insufficient SabCoins")
+    game_id = await pool.fetchval("""
+        INSERT INTO sc_coinflip_games (creator_id, creator_side, amount)
+        VALUES ($1, $2, $3) RETURNING id
+    """, s["user_id"], side, amount)
+    return JSONResponse({"game_id": game_id})
+
+@app.post("/api/coinflip/sc/join/{game_id}")
+async def api_sc_coinflip_join(game_id: int, request: Request):
+    s = await require_user(request)
+    pool = await db.get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            game = await conn.fetchrow("""
+                UPDATE sc_coinflip_games
+                SET joiner_id=$2, status='processing'
+                WHERE id=$1 AND status='open'
+                RETURNING *
+            """, game_id, s["user_id"])
+            if not game:
+                raise HTTPException(404, "Game not found or already taken")
+            if game["creator_id"] == s["user_id"]:
+                await conn.execute("UPDATE sc_coinflip_games SET status='open', joiner_id=NULL WHERE id=$1", game_id)
+                raise HTTPException(400, "Cannot join your own game")
+            amount = float(game["amount"])
+            # Deduct joiner's coins
+            bal = await conn.fetchval("SELECT sabcoins FROM users WHERE id=$1 FOR UPDATE", s["user_id"])
+            if float(bal or 0) < amount:
+                await conn.execute("UPDATE sc_coinflip_games SET status='open', joiner_id=NULL WHERE id=$1", game_id)
+                raise HTTPException(400, "Insufficient SabCoins")
+            await conn.execute("UPDATE users SET sabcoins=sabcoins-$2 WHERE id=$1", s["user_id"], amount)
+            # Pick winner 50/50, house takes 15%
+            winner_id = random.choice([game["creator_id"], s["user_id"]])
+            loser_id = game["creator_id"] if winner_id == s["user_id"] else s["user_id"]
+            payout = round(amount * 2 * 0.85, 2)
+            await conn.execute("UPDATE users SET sabcoins=sabcoins+$2 WHERE id=$1", winner_id, payout)
+            await conn.execute("UPDATE users SET total_games=total_games+1 WHERE id=ANY($1)", [game["creator_id"], s["user_id"]])
+            await conn.execute("UPDATE users SET total_wins=total_wins+1 WHERE id=$1", winner_id)
+            await conn.execute("""
+                UPDATE sc_coinflip_games
+                SET winner_id=$2, status='completed', completed_at=NOW()
+                WHERE id=$1
+            """, game_id, winner_id)
+    return JSONResponse({
+        "winner_id": winner_id,
+        "you_won": winner_id == s["user_id"],
+        "payout": payout if winner_id == s["user_id"] else 0
+    })
+
+@app.post("/api/coinflip/sc/cancel/{game_id}")
+async def api_sc_coinflip_cancel(game_id: int, request: Request):
+    s = await require_user(request)
+    pool = await db.get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            game = await conn.fetchrow("""
+                UPDATE sc_coinflip_games SET status='cancelled'
+                WHERE id=$1 AND status='open' AND creator_id=$2
+                RETURNING *
+            """, game_id, s["user_id"])
+            if not game:
+                raise HTTPException(404, "Game not found or not yours")
+            # Refund creator
+            await conn.execute("UPDATE users SET sabcoins=sabcoins+$2 WHERE id=$1", s["user_id"], float(game["amount"]))
     return JSONResponse({"success": True})
 
 # ─── PAGES ────────────────────────────────────────────────────────────────────
