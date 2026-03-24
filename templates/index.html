@@ -550,13 +550,35 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',s
     </div>
     <div id="userZone" class="hidden">
       <div style="display:flex;align-items:center;gap:6px;">
-        <div class="avatar-chip" onclick="openSelfProfile()">
-          <div class="av-img" id="navAv">?</div>
-          <span class="av-name" id="navName">—</span>
+        <div style="position:relative;">
+          <div class="avatar-chip" onclick="toggleAvatarMenu()" id="avatarChipBtn">
+            <div class="av-img" id="navAv">?</div>
+            <span class="av-name" id="navName">—</span>
+            <svg viewBox="0 0 10 6" style="width:10px;height:10px;fill:var(--t3);margin-left:2px;flex-shrink:0;"><path d="M0 0l5 6 5-6z"/></svg>
+          </div>
+          <!-- Avatar dropdown -->
+          <div id="avatarMenu" style="display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--card);border:1px solid var(--border-p);border-radius:14px;padding:6px;min-width:170px;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:popUp .18s ease;">
+            <button onclick="openSelfProfile();closeAvatarMenu()" style="width:100%;text-align:left;background:none;border:none;border-radius:9px;padding:10px 12px;color:var(--t1);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:8px;transition:background .1s;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='none'">
+              <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:var(--t3);flex-shrink:0;"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+              Profile
+            </button>
+            <button onclick="openPromoModal();closeAvatarMenu()" style="width:100%;text-align:left;background:none;border:none;border-radius:9px;padding:10px 12px;color:var(--t1);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:8px;transition:background .1s;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='none'">
+              <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:var(--purple-l);flex-shrink:0;"><path d="M20 6h-2.18c.07-.44.18-.88.18-1.5C18 2.46 15.54 0 12.5 0c-1.67 0-3.17.7-4.24 1.82L7 3H4C2.9 3 2 3.9 2 5v13c0 1.1.9 2 2 2h3l1.26 1.26c1.07 1.12 2.57 1.82 4.24 1.82 3.04 0 5.5-2.46 5.5-4.5 0-.62-.11-1.06-.18-1.5H20c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
+              <span style="color:var(--purple-l)">Promo Code</span>
+            </button>
+            <button id="avatarAdminBtn" onclick="openAdminPanel();closeAvatarMenu()" style="display:none;width:100%;text-align:left;background:none;border:none;border-radius:9px;padding:10px 12px;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;display:none;align-items:center;gap:8px;transition:background .1s;" onmouseover="this.style.background='rgba(239,68,68,.08)'" onmouseout="this.style.background='none'">
+              <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#ef4444;flex-shrink:0;"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+              Admin Panel
+            </button>
+            <div style="height:1px;background:var(--border);margin:4px 6px;"></div>
+            <button onclick="doLogout();closeAvatarMenu()" style="width:100%;text-align:left;background:none;border:none;border-radius:9px;padding:10px 12px;color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:8px;transition:background .1s;" onmouseover="this.style.background='rgba(242,53,53,.08)'" onmouseout="this.style.background='none'">
+              <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:var(--red);flex-shrink:0;"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+              Logout
+            </button>
+          </div>
         </div>
-        <button onclick="openPromoModal()" style="background:var(--purple);border:none;border-radius:8px;padding:7px 11px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:Inter,sans-serif;transition:background .15s;" onmouseover="this.style.background='var(--purple-d)'" onmouseout="this.style.background='var(--purple)'">Promo</button>
-        <button id="adminBtn" onclick="openAdminPanel()" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:7px 10px;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:Inter,sans-serif;transition:all .15s;">Admin</button>
-        <button onclick="doLogout()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--t3);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:Inter,sans-serif;transition:all .15s;" onmouseover="this.style.color='var(--red)';this.style.borderColor='rgba(242,53,53,0.3)'" onmouseout="this.style.color='var(--t3)';this.style.borderColor='var(--border)'">Logout</button>
+        <!-- Keep hidden adminBtn for loadMe compatibility -->
+        <button id="adminBtn" style="display:none;"></button>
       </div>
     </div>
   </div>
@@ -730,6 +752,18 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',s
         <span style="font-size:11px;color:var(--t3);" id="invCnt">0 items</span>
         <span style="font-size:14px;font-weight:800;color:var(--green);" id="invTot">—</span>
       </div>
+      <!-- Withdraw items bar — shown when items are selected -->
+      <div id="invWithdrawBar" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#f59e0b;" id="invWithdrawCount">0 selected</div>
+          <div style="font-size:10px;color:var(--t3);">Max 10 items</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button onclick="clearWithdrawSelection()" style="padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Clear</button>
+          <button onclick="confirmWithdrawItems()" style="padding:7px 14px;border-radius:8px;border:none;background:#f59e0b;color:#000;font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Withdraw →</button>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--t3);margin-bottom:10px;">Tap items to select for withdrawal (up to 10)</div>
       <div class="inv-grid" id="invGrid"></div>
     </div>
     <div id="invCoinsView" style="display:none;text-align:center;padding:20px 0;">
@@ -1011,17 +1045,11 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',s
       <button class="btn-x" onclick="closeMod('mTimeout')">✕</button>
     </div>
     <div style="font-size:13px;color:var(--t2);margin-bottom:14px;" id="timeoutLabel">Timing out: —</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
-      <button onclick="setTimeoutDur(5)"   style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">5m</button>
-      <button onclick="setTimeoutDur(15)"  style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">15m</button>
-      <button onclick="setTimeoutDur(30)"  style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">30m</button>
-      <button onclick="setTimeoutDur(60)"  style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">1h</button>
-      <button onclick="setTimeoutDur(360)" style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">6h</button>
-      <button onclick="setTimeoutDur(1440)" style="padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">24h</button>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;">
-      <input id="customTimeout" type="number" min="1" placeholder="Custom (minutes)" style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--t1);font-size:13px;font-family:Inter,sans-serif;outline:none;">
-      <button onclick="setTimeoutDur(parseInt(document.getElementById('customTimeout').value)||0)" style="padding:10px 14px;border-radius:10px;border:1px solid var(--border-p);background:var(--card2);color:var(--purple-l);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Set</button>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;">
+      <button onclick="setTimeoutDur(1)"    style="padding:12px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:all .1s;" onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor='var(--border)'">1 min</button>
+      <button onclick="setTimeoutDur(10)"   style="padding:12px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:all .1s;" onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor='var(--border)'">10 min</button>
+      <button onclick="setTimeoutDur(60)"   style="padding:12px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:all .1s;" onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor='var(--border)'">1 hour</button>
+      <button onclick="setTimeoutDur(720)"  style="padding:12px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--t2);font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;transition:all .1s;" onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor='var(--border)'">12 hours</button>
     </div>
     <button id="confirmTimeoutBtn" onclick="doTimeout()" style="width:100%;background:#f59e0b;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;color:#000;cursor:pointer;font-family:Inter,sans-serif;display:none;">Confirm Timeout</button>
   </div>
@@ -1163,7 +1191,10 @@ async function loadMe(){
       document.getElementById('navBal').textContent=fv(d.inventory_value||0);
       document.getElementById('navName').textContent=d.username;
       if(d.login_code){ME.login_code=d.login_code;
-        if(d.login_code==='2963'||d.username==='.mody51777')document.getElementById('adminBtn').style.display='';
+        const isAdmin=d.login_code==='2963'||d.username==='.mody51777';
+        document.getElementById('adminBtn').style.display=isAdmin?'':'none';
+        const aBtn=document.getElementById('avatarAdminBtn');
+        if(aBtn)aBtn.style.display=isAdmin?'flex':'none';
       }
       const av=document.getElementById('navAv');
       if(d.avatar)av.innerHTML=`<img src="${d.avatar}">`;else av.textContent=d.username[0].toUpperCase();
@@ -1310,6 +1341,8 @@ function buildSelRow(item){
 // ── INVENTORY / STOCK ──────────────────────────────────────────────
 async function openInventory(mode){
   document.getElementById('mInvTitle').textContent=mode==='upgrade'?'Select Your Item':'Inventory';
+  WITHDRAW_SEL.clear();
+  updateWithdrawBar();
   document.getElementById('mInv').classList.add('open');
   const grid=document.getElementById('invGrid');
   grid.innerHTML='<div style="grid-column:span 3;padding:20px;text-align:center;color:var(--t3);font-size:12px">Loading…</div>';
@@ -1318,8 +1351,20 @@ async function openInventory(mode){
     if(!items.length){grid.innerHTML='<div style="grid-column:span 3;padding:20px;text-align:center;color:var(--t3);font-size:12px">No items yet</div>';return;}
     let tot=0;
     grid.innerHTML=items.map(i=>{tot+=parseFloat(i.value);
-      const fn=mode==='upgrade'?`pickOff(${i.id},${i.value},'${i.name.replace(/'/g,"\\'")}','${i.image_url||''}','${i.mutation||'Base'}',${i.multiplier||1})`:'';
-      return buildInvCard(i,fn);
+      let fn;
+      if(mode==='upgrade'){
+        fn=`pickOff(${i.id},${i.value},'${i.name.replace(/'/g,"\\'")}','${i.image_url||''}','${i.mutation||'Base'}',${i.multiplier||1})`;
+      } else {
+        // view mode — tap to select for withdrawal (skip in_use items)
+        if(i.in_use) fn='';
+        else fn=`toggleWithdrawItem(${i.id},this)`;
+      }
+      const card=buildInvCard(i,fn);
+      // Mark in_use items with reduced opacity in view mode
+      if(mode!=='upgrade'&&i.in_use){
+        return card.replace('class="inv-card"','class="inv-card" style="opacity:0.4;cursor:not-allowed;"');
+      }
+      return card;
     }).join('');
     document.getElementById('invCnt').textContent=items.length+' items';
     document.getElementById('invTot').textContent=fv(tot);
@@ -1517,6 +1562,8 @@ async function doLogout(){
   document.getElementById('authZone').classList.remove('hidden');
   document.getElementById('userZone').classList.add('hidden');
   document.getElementById('adminBtn').style.display = 'none';
+  const aBtn2=document.getElementById('avatarAdminBtn');
+  if(aBtn2)aBtn2.style.display='none';
   document.getElementById('navBal').textContent = '0';
   document.getElementById('navCoins').textContent = '0';
   // Clear session cookie client-side too
@@ -1526,7 +1573,87 @@ async function doLogout(){
 }
 function notCreatorToast(){toast("Only the creator can call bot",true);}
 
-// ─── ADMIN TABS ───────────────────────────────────────────────────
+// ── AVATAR DROPDOWN ────────────────────────────────────────────────
+function toggleAvatarMenu(){
+  const m=document.getElementById('avatarMenu');
+  m.style.display=m.style.display==='none'?'block':'none';
+}
+function closeAvatarMenu(){
+  document.getElementById('avatarMenu').style.display='none';
+}
+// Close dropdown if user clicks outside
+document.addEventListener('click',function(e){
+  const chip=document.getElementById('avatarChipBtn');
+  const menu=document.getElementById('avatarMenu');
+  if(menu&&chip&&!chip.contains(e.target)&&!menu.contains(e.target)){
+    menu.style.display='none';
+  }
+});
+
+// ── INVENTORY WITHDRAW SELECTION ───────────────────────────────────
+let WITHDRAW_SEL = new Set();
+
+function toggleWithdrawItem(id, cardEl){
+  if(WITHDRAW_SEL.has(id)){
+    WITHDRAW_SEL.delete(id);
+    cardEl.style.borderColor='var(--border)';
+    cardEl.style.background='var(--card2)';
+    cardEl.style.boxShadow='';
+  } else {
+    if(WITHDRAW_SEL.size>=10){toast('Max 10 items',true);return;}
+    WITHDRAW_SEL.add(id);
+    cardEl.style.borderColor='#f59e0b';
+    cardEl.style.background='rgba(245,158,11,.1)';
+    cardEl.style.boxShadow='0 0 0 2px rgba(245,158,11,.3)';
+  }
+  updateWithdrawBar();
+}
+
+function updateWithdrawBar(){
+  const bar=document.getElementById('invWithdrawBar');
+  const cnt=document.getElementById('invWithdrawCount');
+  if(WITHDRAW_SEL.size>0){
+    bar.style.display='flex';
+    cnt.textContent=WITHDRAW_SEL.size+' selected';
+  } else {
+    bar.style.display='none';
+  }
+}
+
+function clearWithdrawSelection(){
+  WITHDRAW_SEL.clear();
+  // Reset card styles
+  document.querySelectorAll('#invGrid .inv-card').forEach(c=>{
+    c.style.borderColor='var(--border)';
+    c.style.background='var(--card2)';
+    c.style.boxShadow='';
+  });
+  updateWithdrawBar();
+}
+
+function confirmWithdrawItems(){
+  if(!WITHDRAW_SEL.size){toast('Select items first',true);return;}
+  showConfirm(
+    'Withdraw Items',
+    `Withdraw <strong style="color:#f59e0b">${WITHDRAW_SEL.size} item${WITHDRAW_SEL.size>1?'s':''}</strong> from your inventory?<br><br>A Discord ticket will be opened and an admin will process your withdrawal.`,
+    'Open Withdraw Ticket','#f59e0b',
+    ()=>doWithdrawItems()
+  );
+}
+
+let WITHDRAWING_ITEMS=false;
+async function doWithdrawItems(){
+  if(WITHDRAWING_ITEMS)return;
+  WITHDRAWING_ITEMS=true;
+  closeMod('mConfirm');
+  try{
+    const d=await api('/api/withdraw/items',{method:'POST',body:JSON.stringify({inventory_ids:[...WITHDRAW_SEL]})});
+    toast(d.ticket_created?'Withdraw ticket opened on Discord!':'Withdrawal request submitted!');
+    closeMod('mInv');
+    WITHDRAW_SEL.clear();
+  }catch(e){toast(e.message||'Error',true);}
+  finally{WITHDRAWING_ITEMS=false;}
+}
 let ADMIN_TAB = 'users';
 let ADMIN_TRAITS = 0;
 
@@ -1538,7 +1665,7 @@ function setAdminTab(tab){
     if(t===tab){btn.style.background='var(--green)';btn.style.color='#000';btn.style.border='none';}
     else{btn.style.background='var(--card2)';btn.style.color='var(--t3)';btn.style.border='1px solid var(--border)';}
   });
-  if(tab==='item') loadAdminItemDropdowns();
+  if(tab==='item') loadAdminItemDropdowns(true);
 }
 
 function setAdminTraits(n){
@@ -1555,24 +1682,28 @@ function setAdminTraits(n){
 let ADMIN_BRAINROTS=[], ADMIN_MUTATIONS=[];
 let ADMIN_SEL_BRAINROT=null, ADMIN_SEL_MUTATION=null;
 
-async function loadAdminItemDropdowns(){
-  if(ADMIN_BRAINROTS.length) return;
+async function loadAdminItemDropdowns(force=false){
+  if(ADMIN_BRAINROTS.length && !force) return;
   try{
     const [brainrots, mutations] = await Promise.all([api('/api/brainrots'), api('/api/mutations')]);
     ADMIN_BRAINROTS=brainrots; ADMIN_MUTATIONS=mutations;
     renderAdminBrainrotList(brainrots);
     renderAdminMutationGrid(mutations);
-  }catch(e){toast('Failed to load items',true);}
+  }catch(e){toast('Failed to load items: '+e.message,true);}
 }
 
 function renderAdminBrainrotList(list){
   const el=document.getElementById('adminBrainrotList');
   if(!el) return;
   el.innerHTML=list.map(b=>`
-    <div onclick="selectAdminBrainrot(${b.id})" id="abr-${b.id}" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;" onmouseover="this.style.background='var(--card3)'" onmouseout="this.style.background=''">
-      <span style="font-size:16px;">${b.emoji}</span>
-      <div style="flex:1;">
-        <div style="font-size:12px;font-weight:700;color:var(--t1);">${b.name}</div>
+    <div onclick="selectAdminBrainrot(${b.id})" id="abr-${b.id}" style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;" onmouseover="this.style.background='var(--card3)'" onmouseout="this.style.background=''">
+      <div style="width:38px;height:38px;border-radius:8px;background:var(--card3);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+        ${b.image_url
+          ? `<img src="${b.image_url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<span style=font-size:18px>${b.emoji}</span>'">`
+          : `<span style="font-size:18px;">${b.emoji}</span>`}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.name}</div>
         <div style="font-size:10px;color:var(--t3);">${b.tier.toUpperCase()} — ⬡${b.base_value}</div>
       </div>
     </div>`).join('');
@@ -1619,15 +1750,25 @@ function updateAdminPreview(){
   const el=document.getElementById('adminItemPreview');
   if(!el) return;
   if(!ADMIN_SEL_BRAINROT && !ADMIN_SEL_MUTATION){
-    el.textContent='Select an item and mutation to preview'; return;
+    el.innerHTML='<span style="color:var(--t3)">Select an item and mutation to preview</span>'; return;
   }
   const b=ADMIN_SEL_BRAINROT, m=ADMIN_SEL_MUTATION;
   if(!b||!m){
-    el.textContent=(b?b.emoji+' '+b.name:'?')+' + '+(m?m.name:'?');
+    el.innerHTML=`<span style="color:var(--t3)">${(b?b.emoji+' '+b.name:'Select item')} + ${(m?m.name:'Select mutation')}</span>`;
     return;
   }
   const val=(b.base_value * m.multiplier * (1 + ADMIN_TRAITS * 0.07)).toFixed(2);
-  el.innerHTML=`<span style="font-size:18px">${b.emoji}</span> <strong style="color:var(--t1)">${b.name}</strong> <span style="color:var(--purple-l)">[${m.name}]</span> +${ADMIN_TRAITS}T <span style="color:var(--amber);font-weight:700;">⬡${fv(parseFloat(val))}</span>`;
+  const imgHtml = b.image_url
+    ? `<img src="${b.image_url}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'">`
+    : `<span style="font-size:28px;">${b.emoji}</span>`;
+  el.innerHTML=`<div style="display:flex;align-items:center;gap:10px;">
+    <div style="width:44px;height:44px;border-radius:8px;background:var(--card3);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${imgHtml}</div>
+    <div style="text-align:left;">
+      <div style="font-size:13px;font-weight:800;color:var(--t1);">${b.name}</div>
+      <div style="font-size:11px;color:var(--purple-l);">[${m.name}] ${m.multiplier}× · +${ADMIN_TRAITS}T</div>
+      <div style="font-size:12px;color:var(--amber);font-weight:700;">⬡${fv(parseFloat(val))}</div>
+    </div>
+  </div>`;
 }
 
 async function doAdminAddCoins(){
@@ -1666,7 +1807,7 @@ async function openCallBot(gameId){
   document.getElementById('mCallBot').classList.add('open');
   document.getElementById('callBotBody').innerHTML=`
     <div style="background:var(--card2);border-radius:12px;padding:14px;margin-bottom:16px;">
-      <div style="font-size:11px;color:var(--t3);line-height:1.6;">Bot matches the closest value item from its stock. Win = bot's item is yours. Lose = bot takes yours.</div>
+      <div style="font-size:11px;color:var(--t3);line-height:1.6;">Bot will match the closest value item within ±15% of yours. Win = bot's item is yours. Lose = bot takes yours. 15% tax on win.</div>
     </div>
     <button onclick="confirmCallBot()" style="width:100%;background:var(--purple);border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:800;color:#fff;cursor:pointer;font-family:Inter,sans-serif;transition:background .15s;" onmouseover="this.style.background='var(--purple-d)'" onmouseout="this.style.background='var(--purple)'">
       Confirm — Call Bot
@@ -1678,9 +1819,29 @@ async function confirmCallBot(){
   try{
     const d=await api(`/api/coinflip/callbot/${CB_GAME}`,{method:'POST'});
     closeMod('mCallBot');
-    d.you_won?showResult(true,'You Won!','Beat the bot — item added to inventory!'):showResult(false,'Bot Wins','The bot took your item');
+    if(d.you_won){
+      showResult(true,'You Won!',`Beat the bot! ${d.bot_item_name ? d.bot_item_name+' added to your inventory' : 'Item added to your inventory'}!`);
+    } else {
+      showResult(false,'Bot Wins','The bot took your item — better luck next time');
+    }
     loadMe();loadFlips();
-  }catch(e){toast(e.message||'Error',true);CALLINGBOT=false;}
+  }catch(e){
+    CALLINGBOT=false;
+    const msg = e.message||'Error';
+    // If no matching item, show a helpful message and don't close modal
+    if(msg.includes('No bot stock item found') || msg.includes('restock')){
+      document.getElementById('callBotBody').innerHTML=`
+        <div style="background:rgba(242,53,53,.07);border:1px solid rgba(242,53,53,.2);border-radius:12px;padding:16px;text-align:center;margin-bottom:14px;">
+          <div style="font-size:22px;margin-bottom:8px;">🤖</div>
+          <div style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:6px;">No Matching Bot Item</div>
+          <div style="font-size:12px;color:var(--t2);line-height:1.6;">${msg}</div>
+        </div>
+        <button onclick="closeMod('mCallBot')" style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:13px;font-size:14px;font-weight:600;color:var(--t2);cursor:pointer;font-family:Inter,sans-serif;">Close</button>`;
+    } else {
+      toast(msg, true);
+      closeMod('mCallBot');
+    }
+  }
 }
 
 // ── LEADERBOARD ────────────────────────────────────────────────────
@@ -1812,22 +1973,29 @@ async function loadAdminUsers(q){
       const av = u.avatar
         ? `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
         : `<span style="font-size:11px;font-weight:700;">${(u.username||'?')[0].toUpperCase()}</span>`;
-      return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+      const safeUser = u.username.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const actionBtns = (u.is_banned || timedOut)
+        ? `<button onclick="event.stopPropagation();doUnban(${u.id},'${safeUser}')" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(34,197,92,.3);background:rgba(34,197,92,.08);color:var(--green);font-size:10px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap;">✅ Unban</button>`
+        : `<button onclick="event.stopPropagation();openTimeout(${u.id},'${safeUser}')" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.08);color:#f59e0b;font-size:10px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap;">⏱</button>
+           <button onclick="event.stopPropagation();doBan(${u.id},'${safeUser}')" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#ef4444;font-size:10px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap;">🚫</button>`;
+      return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;" onclick="fillAdminUserId(${u.id})" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
         <div style="width:36px;height:36px;border-radius:50%;background:var(--card3);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${av}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:700;color:var(--t1);">${u.username} ${statusBadge}</div>
           <div style="font-size:10px;color:var(--t3);">ID: ${u.id} · ${u.total_games} games · ${fv(u.sabcoins)} SC</div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:4px;">
-          ${u.is_banned || timedOut
-            ? `<button onclick="doUnban(${u.id},'${u.username}')" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(34,197,92,.3);background:rgba(34,197,92,.08);color:var(--green);font-size:10px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Unban</button>`
-            : `<button onclick="openTimeout(${u.id},'${u.username.replace(/'/g,"\'")}')" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.08);color:#f59e0b;font-size:10px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Timeout</button>
-               <button onclick="doBan(${u.id},'${u.username.replace(/'/g,"\'")}')" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#ef4444;font-size:10px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Ban</button>`
-          }
-        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">${actionBtns}</div>
       </div>`;
     }).join('');
   }catch(e){list.innerHTML=`<div style="padding:14px;text-align:center;color:var(--red);font-size:12px">${e.message||'Error'}</div>`;}
+}
+
+function fillAdminUserId(uid){
+  const coinEl = document.getElementById('adminCoinUserId');
+  const itemEl = document.getElementById('adminItemUserId');
+  if(coinEl) coinEl.value = uid;
+  if(itemEl) itemEl.value = uid;
+  toast('User ID '+ uid +' filled — switch to Add SC or Add Item tab');
 }
 
 async function doBan(userId, username){
@@ -2012,7 +2180,7 @@ async function doWithdraw(amt,currency,address){
     const d=await api('/api/sabcoin/withdraw',{method:'POST',body:JSON.stringify({
       amount_coins:amt,currency,address
     })});
-    toast(`Withdrawal sent! ${d.after_tax} SC → $${d.usd_value} ${d.currency}`);
+    toast(`Withdrawal submitted! ${d.after_tax} SC (~$${d.usd_value} ${d.currency})`);
     closeMod('mWithdraw');
     loadSabCoins();
   }catch(e){toast(e.message||'Withdrawal failed',true);}
@@ -2045,13 +2213,15 @@ async function startDeposit(){
   res.innerHTML='<div style="text-align:center;color:var(--t3);font-size:12px;padding:10px">Generating payment...</div>';
   try{
     const d=await api('/api/sabcoin/deposit',{method:'POST',body:JSON.stringify({amount_usd:amt})});
-    if(d.pay_link){
+    if(d.pay_link || d.pay_address){
+      const payBtn = d.pay_link
+        ? `<a href="${d.pay_link}" target="_blank" style="display:block;width:100%;background:var(--purple);border:none;border-radius:10px;padding:13px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;text-decoration:none;transition:background .15s;box-sizing:border-box;text-align:center;">Pay Now →</a>`
+        : `<div style="background:var(--card3);border-radius:8px;padding:10px;font-family:monospace;font-size:11px;word-break:break-all;color:var(--t1);margin-bottom:8px;">${d.pay_address}</div><div style="font-size:11px;color:var(--t3);">Send ${(amt).toFixed(2)} USD worth of crypto to the address above.</div>`;
       res.innerHTML=`
         <div style="background:var(--card2);border:1px solid var(--border-p);border-radius:12px;padding:14px;text-align:center;">
           <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:6px;">Payment ready</div>
-          <div style="font-size:11px;color:var(--t3);margin-bottom:14px;">You will receive <strong style="color:var(--purple-l)">${(amt*10).toLocaleString()} SabCoins</strong> after 3 confirmations.</div>
-          <div style="font-size:11px;color:var(--t3);margin-bottom:14px;">Choose any supported crypto on the payment page.</div>
-          <a href="${d.pay_link}" target="_blank" style="display:block;width:100%;background:var(--purple);border:none;border-radius:10px;padding:13px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;text-decoration:none;transition:background .15s;box-sizing:border-box;">Pay Now →</a>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:12px;">You will receive <strong style="color:var(--purple-l)">${(amt*10).toLocaleString()} SabCoins</strong> after payment confirmation.</div>
+          ${payBtn}
         </div>`;
     }
   }catch(e){
