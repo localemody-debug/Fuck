@@ -145,7 +145,6 @@ class AddItemView(discord.ui.View):
 
 class CloseTicketView(discord.ui.View):
     def __init__(self):
-        # FIX: timeout=None makes this view persistent across bot restarts
         super().__init__(timeout=None)
 
     @discord.ui.button(label="🔒 Close Ticket", style=discord.ButtonStyle.danger, custom_id="close_ticket")
@@ -156,20 +155,20 @@ class CloseTicketView(discord.ui.View):
         await asyncio.sleep(5)
         await interaction.channel.delete()
 
-# ─── EVENTS ───────────────────────────────────────────────────────────────────
+# ─── BACKGROUND SETUP TASK ────────────────────────────────────────────────────
+# FIX: Run schema + sync + auto_setup in a background task with a small delay
+# so it never conflicts with discord.py's on_ready which is still in progress.
 
-@bot.event
-async def on_ready():
-    # FIX: Register CloseTicketView as persistent so button works after restarts
-    bot.add_view(CloseTicketView())
+async def _run_schema_and_setup():
+    await asyncio.sleep(2)  # let discord.py fully settle first
 
-    # Sync schema
+    # ── Schema ──
     try:
         pool = await db.get_pool()
         schema_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "schema.sql")
         with open(schema_path) as f:
             schema_sql = f.read()
-        # Run statement by statement — same safe approach as server.py
+
         statements = []
         current = []
         in_dollar_block = False
@@ -190,6 +189,7 @@ async def on_ready():
                     current = []
                 else:
                     current.append(line)
+
         async with pool.acquire() as conn:
             for stmt in statements:
                 clean = stmt.strip()
@@ -201,16 +201,20 @@ async def on_ready():
                     err_str = str(e)
                     if 'already exists' not in err_str and 'duplicate' not in err_str.lower():
                         print(f"⚠️ Schema stmt warning: {err_str[:120]}")
+
+    except FileNotFoundError:
+        print("⚠️ schema.sql not found — skipping")
     except Exception as e:
         print(f"⚠️ Schema error (non-fatal): {e}")
 
-    # Sync slash commands
+    # ── Sync slash commands ──
     try:
         synced = await tree.sync(guild=discord.Object(id=GUILD_ID))
         print(f"✅ Synced {len(synced)} commands to guild {GUILD_ID}")
     except Exception as e:
         print(f"❌ Command sync failed: {e}")
 
+    # ── Auto-setup roles/channels ──
     guild = bot.get_guild(GUILD_ID)
     if guild:
         try:
@@ -218,9 +222,16 @@ async def on_ready():
         except Exception as e:
             print(f"⚠️ Auto-setup error: {e}")
 
-    print(f"✅ SabPot bot ready as {bot.user}")
+# ─── EVENTS ───────────────────────────────────────────────────────────────────
 
-# FIX: Handle permission errors from slash commands so users get a proper message
+@bot.event
+async def on_ready():
+    bot.add_view(CloseTicketView())
+    print(f"✅ SabPot bot ready as {bot.user}")
+    asyncio.create_task(_run_schema_and_setup())
+
+# ─── ERROR HANDLER ────────────────────────────────────────────────────────────
+
 @tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.CheckFailure):
@@ -228,13 +239,17 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
             "❌ You don't have permission to use this command.", ephemeral=True
         )
     else:
-        await interaction.response.send_message(
-            f"❌ An error occurred: {str(error)}", ephemeral=True
-        )
+        try:
+            await interaction.response.send_message(
+                f"❌ An error occurred: {str(error)}", ephemeral=True
+            )
+        except Exception:
+            pass
         raise error
 
+# ─── AUTO SETUP ───────────────────────────────────────────────────────────────
+
 async def auto_setup(guild: discord.Guild):
-    """Automatically create roles and log channels if they don't exist."""
     existing_roles = {r.name for r in guild.roles}
     role_colors = {
         "Owner": discord.Color.from_rgb(255, 170, 0),
@@ -247,17 +262,14 @@ async def auto_setup(guild: discord.Guild):
         if role_name not in existing_roles:
             try:
                 await guild.create_role(
-                    name=role_name,
-                    color=color,
-                    hoist=True,
-                    mentionable=True,
+                    name=role_name, color=color,
+                    hoist=True, mentionable=True,
                     reason="SabPot auto-setup"
                 )
                 print(f" ✅ Created role: {role_name}")
             except Exception as e:
                 print(f" ❌ Failed to create role {role_name}: {e}")
 
-    # Use clean names without emojis for existence check (Discord normalises them)
     existing_channel_names = {c.name for c in guild.text_channels}
 
     log_channels = [
@@ -281,7 +293,6 @@ async def auto_setup(guild: discord.Guild):
             category = None
 
     for ch_name, ch_clean, topic in log_channels:
-        # FIX: check by the clean name Discord actually stores, not the emoji version
         if ch_clean not in existing_channel_names and ch_name not in existing_channel_names:
             try:
                 ow = {guild.default_role: discord.PermissionOverwrite(read_messages=False)}
@@ -322,6 +333,7 @@ async def log_to_channel(channel_name: str, embed: discord.Embed):
 @tree.command(name="additem", description="[ADMIN] Add a brainrot item to a user's inventory", guild=discord.Object(id=GUILD_ID))
 @is_admin()
 async def additem(interaction: discord.Interaction, user: discord.Member):
+    # Get fresh pool and data upfront for building the view
     pool = await db.get_pool()
     brainrots = await db.get_all_brainrots(pool)
     mutations = await db.get_all_mutations(pool)
@@ -331,7 +343,9 @@ async def additem(interaction: discord.Interaction, user: discord.Member):
                           description="Select the brainrot, mutation, and traits below.")
 
     async def do_add(inter, target_uid, brainrot_id, mutation_id, traits):
-        inv_id = await db.add_item_to_inventory(pool, target_uid, brainrot_id, mutation_id, traits)
+        # CRITICAL FIX: get a fresh pool inside the callback, never reuse outer pool
+        _pool = await db.get_pool()
+        inv_id = await db.add_item_to_inventory(_pool, target_uid, brainrot_id, mutation_id, traits)
         b = next(x for x in brainrots if x['id'] == brainrot_id)
         m = next(x for x in mutations if x['id'] == mutation_id)
         val = db.calc_value(float(b['base_value']), float(m['multiplier']), traits)
@@ -343,7 +357,6 @@ async def additem(interaction: discord.Interaction, user: discord.Member):
         result.add_field(name="User", value=f"<@{target_uid}>", inline=True)
         result.add_field(name="Inv ID", value=str(inv_id), inline=True)
         await inter.response.edit_message(embed=result, view=None)
-        # FIX: Log admin item additions to the login channel (admin log), not coinflip/upgrader
         await log_to_channel("🔐login", result)
 
     view = AddItemView(brainrots, mutations, user.id, do_add)
@@ -371,7 +384,8 @@ class RemoveItemSelect(discord.ui.Select):
         if not item:
             await interaction.response.send_message("Item not found.", ephemeral=True)
             return
-        await db.remove_item_from_inventory(self.pool, inv_id)
+        _pool = await db.get_pool()
+        await db.remove_item_from_inventory(_pool, inv_id)
         embed = discord.Embed(title="🗑️ Item Removed", color=RED)
         embed.add_field(name="Item", value=f"{item['emoji']} {item['name']}", inline=True)
         embed.add_field(name="Mutation", value=item['mutation'], inline=True)
@@ -422,7 +436,9 @@ async def addbotstock(interaction: discord.Interaction):
                           description="Select brainrot, mutation, and traits for the bot stock item.")
 
     async def do_add_stock(inter, _, brainrot_id, mutation_id, traits):
-        stock_id = await db.add_to_bot_stock(pool, brainrot_id, mutation_id, traits)
+        # CRITICAL FIX: fresh pool inside callback
+        _pool = await db.get_pool()
+        stock_id = await db.add_to_bot_stock(_pool, brainrot_id, mutation_id, traits)
         b = next(x for x in brainrots if x['id'] == brainrot_id)
         m = next(x for x in mutations if x['id'] == mutation_id)
         val = db.calc_value(float(b['base_value']), float(m['multiplier']), traits)
@@ -460,7 +476,8 @@ class RemoveStockSelect(discord.ui.Select):
         if not item:
             await interaction.response.send_message("Item not found.", ephemeral=True)
             return
-        await db.remove_from_bot_stock(self.pool, stock_id)
+        _pool = await db.get_pool()
+        await db.remove_from_bot_stock(_pool, stock_id)
         embed = discord.Embed(title="🗑️ Removed from Bot Stock", color=RED)
         embed.add_field(name="Item", value=f"{item['emoji']} {item['name']}", inline=True)
         embed.add_field(name="Mutation", value=item['mutation'], inline=True)
@@ -518,7 +535,9 @@ async def deposit(interaction: discord.Interaction):
         category=category,
         overwrites=overwrites
     )
-    await db.create_ticket(pool, interaction.user.id, 'deposit', channel.id)
+    # Fresh pool for ticket creation to avoid concurrent operation error
+    _pool = await db.get_pool()
+    await db.create_ticket(_pool, interaction.user.id, 'deposit', channel.id)
     embed = discord.Embed(title="📥 Deposit Ticket", color=GREEN)
     embed.description = (
         f"Welcome {interaction.user.mention}!\n\n"
@@ -553,7 +572,8 @@ async def withdraw(interaction: discord.Interaction):
         category=category,
         overwrites=overwrites
     )
-    await db.create_ticket(pool, interaction.user.id, 'withdraw', channel.id)
+    _pool = await db.get_pool()
+    await db.create_ticket(_pool, interaction.user.id, 'withdraw', channel.id)
     embed = discord.Embed(title="📤 Withdraw Ticket", color=GOLD)
     embed.description = (
         f"Welcome {interaction.user.mention}!\n\n"
