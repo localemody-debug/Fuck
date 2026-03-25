@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SabPot Admin Panel</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0f0f13;--surface:#18181f;--card:#1e1e27;--border:#2a2a36;
+    --accent:#6c5ce7;--accent2:#a29bfe;--green:#22c55e;--red:#ef4444;
+    --gold:#f59e0b;--blue:#3b82f6;--text:#e2e2f0;--muted:#7c7c9a;
+    --radius:12px;
+  }
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+  /* ── LAYOUT ── */
+  .layout{display:flex;min-height:100vh}
+  .sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);
+    display:flex;flex-direction:column;padding:24px 0;position:sticky;top:0;height:100vh;overflow-y:auto}
+  .sidebar-logo{padding:0 20px 24px;font-size:18px;font-weight:700;color:var(--accent2);
+    border-bottom:1px solid var(--border);margin-bottom:16px}
+  .sidebar-logo span{color:var(--muted);font-size:12px;display:block;font-weight:400;margin-top:2px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;
+    border-radius:0;transition:all .15s;color:var(--muted);font-size:14px;font-weight:500;
+    border-left:3px solid transparent}
+  .nav-item:hover{background:rgba(108,92,231,.1);color:var(--text)}
+  .nav-item.active{background:rgba(108,92,231,.15);color:var(--accent2);border-left-color:var(--accent)}
+  .nav-icon{font-size:16px;width:20px;text-align:center}
+  .main{flex:1;padding:28px;overflow-y:auto;max-width:1100px}
+
+  /* ── SECTIONS ── */
+  .section{display:none}.section.active{display:block}
+  .section-title{font-size:22px;font-weight:700;margin-bottom:6px}
+  .section-sub{color:var(--muted);font-size:13px;margin-bottom:24px}
+
+  /* ── CARDS ── */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+  .card-title{font-size:14px;font-weight:600;color:var(--accent2);margin-bottom:14px;
+    display:flex;align-items:center;gap:8px}
+
+  /* ── FORMS ── */
+  .form-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .form-group{display:flex;flex-direction:column;gap:6px;flex:1;min-width:160px}
+  .form-group label{font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+  select,input[type=text],input[type=number]{
+    background:var(--surface);border:1px solid var(--border);color:var(--text);
+    padding:9px 12px;border-radius:8px;font-size:14px;width:100%;outline:none;transition:border-color .15s}
+  select:focus,input:focus{border-color:var(--accent)}
+  select option{background:var(--surface)}
+
+  /* ── BUTTONS ── */
+  .btn{padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-size:14px;
+    font-weight:600;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn-primary{background:var(--accent);color:#fff}.btn-primary:hover:not(:disabled){background:#7d6ef0}
+  .btn-success{background:var(--green);color:#fff}.btn-success:hover:not(:disabled){background:#16a34a}
+  .btn-danger{background:var(--red);color:#fff}.btn-danger:hover:not(:disabled){background:#dc2626}
+  .btn-warning{background:var(--gold);color:#000}.btn-warning:hover:not(:disabled){background:#d97706}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+  .btn-ghost:hover:not(:disabled){border-color:var(--accent);color:var(--text)}
+  .btn-sm{padding:6px 12px;font-size:12px}
+
+  /* ── TOAST ── */
+  #toast{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+  .toast-item{padding:12px 18px;border-radius:10px;font-size:14px;font-weight:500;
+    max-width:360px;pointer-events:auto;animation:slideIn .2s ease;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  .toast-item.success{background:#166534;border:1px solid #22c55e;color:#bbf7d0}
+  .toast-item.error{background:#7f1d1d;border:1px solid #ef4444;color:#fecaca}
+  .toast-item.info{background:#1e3a5f;border:1px solid #3b82f6;color:#bfdbfe}
+  @keyframes slideIn{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+
+  /* ── TABLE ── */
+  .table-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{background:var(--surface);padding:10px 14px;text-align:left;color:var(--muted);
+    font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px}
+  td{padding:10px 14px;border-top:1px solid var(--border)}
+  tr:hover td{background:rgba(255,255,255,.02)}
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+  .badge-green{background:rgba(34,197,94,.15);color:#22c55e}
+  .badge-red{background:rgba(239,68,68,.15);color:#ef4444}
+  .badge-gold{background:rgba(245,158,11,.15);color:#f59e0b}
+  .badge-blue{background:rgba(59,130,246,.15);color:#3b82f6}
+  .badge-purple{background:rgba(108,92,231,.15);color:#a29bfe}
+
+  /* ── USER CARD ── */
+  .user-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--border)}
+  .user-row{display:flex;align-items:center;gap:10px}
+
+  /* ── ITEM PICKER ── */
+  .picker-modal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.7);
+    align-items:center;justify-content:center}
+  .picker-modal.open{display:flex}
+  .picker-box{background:var(--card);border:1px solid var(--border);border-radius:16px;
+    padding:24px;width:520px;max-height:80vh;display:flex;flex-direction:column;gap:16px}
+  .picker-title{font-size:18px;font-weight:700}
+  .picker-search{background:var(--surface);border:1px solid var(--border);color:var(--text);
+    padding:8px 12px;border-radius:8px;font-size:14px;width:100%;outline:none}
+  .picker-search:focus{border-color:var(--accent)}
+  .picker-list{overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:4px}
+  .picker-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;
+    cursor:pointer;transition:background .12s;border:1px solid transparent}
+  .picker-item:hover{background:rgba(108,92,231,.12);border-color:var(--border)}
+  .picker-item.selected{background:rgba(108,92,231,.2);border-color:var(--accent)}
+  .picker-item-emoji{font-size:20px;width:28px;text-align:center;flex-shrink:0}
+  .picker-item-info{flex:1}
+  .picker-item-name{font-size:14px;font-weight:600}
+  .picker-item-meta{font-size:11px;color:var(--muted);margin-top:2px}
+  .picker-item-val{font-size:13px;color:var(--gold);font-weight:600;margin-left:auto}
+  .traits-row{display:flex;align-items:center;gap:12px}
+  .traits-label{font-size:14px;color:var(--muted)}
+  .traits-count{font-size:18px;font-weight:700;min-width:24px;text-align:center}
+  .traits-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
+    background:var(--surface);color:var(--text);cursor:pointer;font-size:18px;
+    display:flex;align-items:center;justify-content:center;transition:all .12s}
+  .traits-btn:hover{border-color:var(--accent);background:rgba(108,92,231,.1)}
+  .picker-footer{display:flex;gap:10px;justify-content:flex-end}
+
+  /* ── INVENTORY TABLE ── */
+  .inv-item{display:flex;align-items:center;gap:8px}
+  .inv-emoji{font-size:18px}
+
+  /* ── DIVIDER ── */
+  .divider{height:1px;background:var(--border);margin:16px 0}
+
+  /* ── LOADING ── */
+  .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.2);
+    border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ── STATS GRID ── */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px 18px}
+  .stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .stat-value{font-size:22px;font-weight:700}
+  .stat-value.green{color:var(--green)}.stat-value.gold{color:var(--gold)}.stat-value.blue{color:var(--blue)}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- ── ITEM PICKER MODAL ── -->
+<div class="picker-modal" id="pickerModal">
+  <div class="picker-box">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="picker-title" id="pickerTitle">Select Item</div>
+      <button class="btn btn-ghost btn-sm" onclick="closePicker()">✕ Cancel</button>
+    </div>
+    <input class="picker-search" id="pickerSearch" placeholder="Search brainrots..." oninput="filterPicker()"/>
+    <div class="picker-list" id="pickerList"></div>
+    <!-- Mutation row -->
+    <div class="form-row" id="mutationRow" style="display:none">
+      <div class="form-group">
+        <label>Mutation</label>
+        <select id="pickerMutation"></select>
+      </div>
+    </div>
+    <!-- Traits row -->
+    <div class="traits-row" id="traitsRow" style="display:none">
+      <span class="traits-label">Traits:</span>
+      <button class="traits-btn" onclick="changeTrait(-1)">−</button>
+      <span class="traits-count" id="traitsCount">0</span>
+      <button class="traits-btn" onclick="changeTrait(1)">+</button>
+      <span class="traits-label" style="margin-left:4px">/ 10</span>
+    </div>
+    <div class="picker-footer" id="pickerFooter" style="display:none">
+      <button class="btn btn-success" onclick="confirmPicker()">✅ Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">🎰 SabPot <span>Admin Panel</span></div>
+    <div class="nav-item active" onclick="showSection('users')" id="nav-users">
+      <span class="nav-icon">👥</span> Users
+    </div>
+    <div class="nav-item" onclick="showSection('inventory')" id="nav-inventory">
+      <span class="nav-icon">🎒</span> Inventory
+    </div>
+    <div class="nav-item" onclick="showSection('botstock')" id="nav-botstock">
+      <span class="nav-icon">🤖</span> Bot Stock
+    </div>
+    <div class="nav-item" onclick="showSection('coins')" id="nav-coins">
+      <span class="nav-icon">🪙</span> SC Coins
+    </div>
+    <div class="nav-item" onclick="showSection('moderation')" id="nav-moderation">
+      <span class="nav-icon">🛡️</span> Moderation
+    </div>
+    <div class="nav-item" onclick="showSection('promos')" id="nav-promos">
+      <span class="nav-icon">🎟️</span> Promo Codes
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ══════════════════════════════════
+         USERS SECTION
+    ══════════════════════════════════ -->
+    <div class="section active" id="section-users">
+      <div class="section-title">👥 Users</div>
+      <div class="section-sub">All registered site users</div>
+      <div class="card">
+        <div style="display:flex;gap:10px;margin-bottom:14px">
+          <input type="text" id="userSearch" placeholder="Search by username…" style="max-width:300px"
+            oninput="filterUsers()"/>
+          <button class="btn btn-ghost btn-sm" onclick="loadUsers()">🔄 Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>User</th><th>Coins</th><th>Net Worth</th><th>Games</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="usersTable"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">
+              Loading… <span class="spinner"></span></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         INVENTORY SECTION
+    ══════════════════════════════════ -->
+    <div class="section" id="section-inventory">
+      <div class="section-title">🎒 User Inventory</div>
+      <div class="section-sub">Add or remove items from any user's inventory</div>
+
+      <!-- ADD ITEM -->
+      <div class="card">
+        <div class="card-title">➕ Add Item to User</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>User</label>
+            <select id="invAddUser" onchange="onInvUserChange()"><option value="">— select user —</option></select>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="flex:0 0 auto">
+            <label>Selected Item</label>
+            <button class="btn btn-ghost" id="invItemBtn" onclick="openPickerForInvAdd()">
+              🎲 Pick Brainrot
+            </button>
+          </div>
+          <button class="btn btn-success" onclick="doAddItem()" id="addItemBtn" disabled>
+            ➕ Add Item
+          </button>
+        </div>
+        <div id="invAddPreview" style="margin-top:10px;display:none" class="badge badge-purple"></div>
+      </div>
+
+      <!-- USER INVENTORY TABLE -->
+      <div class="card" id="invViewCard" style="display:none">
+        <div class="card-title">📦 <span id="invViewTitle">Inventory</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Item</th><th>Mutation</th><th>Traits</th><th>Value</th><th>In Use</th><th>Action</th>
+            </tr></thead>
+            <tbody id="invTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         BOT STOCK SECTION
+    ══════════════════════════════════ -->
+    <div class="section" id="section-botstock">
+      <div class="section-title">🤖 Bot Stock</div>
+      <div class="section-sub">Add or remove items from the upgrader/coinflip bot stock</div>
+
+      <!-- ADD TO BOT STOCK -->
+      <div class="card">
+        <div class="card-title">➕ Add Item to Bot Stock</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="flex:0 0 auto">
+            <label>Selected Item</label>
+            <button class="btn btn-ghost" id="stockItemBtn" onclick="openPickerForStock()">
+              🎲 Pick Brainrot
+            </button>
+          </div>
+          <button class="btn btn-success" onclick="doAddBotStock()" id="addStockBtn" disabled>
+            ➕ Add to Stock
+          </button>
+        </div>
+        <div id="stockAddPreview" style="margin-top:10px;display:none" class="badge badge-gold"></div>
+      </div>
+
+      <!-- BOT STOCK TABLE -->
+      <div class="card">
+        <div class="card-title" style="justify-content:space-between">
+          <span>📋 Current Stock</span>
+          <button class="btn btn-ghost btn-sm" onclick="loadBotStock()">🔄 Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Item</th><th>Mutation</th><th>Traits</th><th>Value</th><th>Action</th>
+            </tr></thead>
+            <tbody id="stockTable"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">
+              Loading… <span class="spinner"></span></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         SC COINS SECTION
+    ══════════════════════════════════ -->
+    <div class="section" id="section-coins">
+      <div class="section-title">🪙 SC Coins</div>
+      <div class="section-sub">Manually credit or deduct SabCoins for any user</div>
+      <div class="card">
+        <div class="card-title">💰 Credit Coins</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>User</label>
+            <select id="coinsUser"><option value="">— select user —</option></select>
+          </div>
+          <div class="form-group" style="max-width:160px">
+            <label>Amount</label>
+            <input type="number" id="coinsAmount" placeholder="e.g. 100" min="0.01" step="0.01"/>
+          </div>
+          <div class="form-group" style="max-width:160px">
+            <label>Action</label>
+            <select id="coinsAction">
+              <option value="add">➕ Add</option>
+              <option value="set">📌 Set Balance</option>
+              <option value="deduct">➖ Deduct</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-success" onclick="doCoins()">Apply Coins</button>
+      </div>
+      <div class="card" id="coinsPreviewCard" style="display:none">
+        <div class="card-title">Current Balance</div>
+        <div id="coinsPreview" style="font-size:24px;font-weight:700;color:var(--gold)"></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         MODERATION SECTION
+    ══════════════════════════════════ -->
+    <div class="section" id="section-moderation">
+      <div class="section-title">🛡️ Moderation</div>
+      <div class="section-sub">Ban, unban, timeout, and untimeout users</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <!-- BAN/UNBAN -->
+        <div class="card">
+          <div class="card-title">🔨 Ban / Unban User</div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label>User</label>
+            <select id="banUser" onchange="loadBanStatus()"><option value="">— select user —</option></select>
+          </div>
+          <div id="banStatus" style="margin-bottom:12px;display:none"></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-danger" onclick="doBan(true)">🔨 Ban</button>
+            <button class="btn btn-success" onclick="doBan(false)">✅ Unban</button>
+          </div>
+        </div>
+
+        <!-- TIMEOUT -->
+        <div class="card">
+          <div class="card-title">⏰ Timeout / Remove Timeout</div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label>User</label>
+            <select id="timeoutUser" onchange="loadTimeoutStatus()"><option value="">— select user —</option></select>
+          </div>
+          <div id="timeoutStatus" style="margin-bottom:12px;display:none"></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Duration (hours)</label>
+              <input type="number" id="timeoutHours" placeholder="e.g. 24" min="0.1" step="0.1"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-warning" onclick="doTimeout(false)">⏰ Timeout</button>
+            <button class="btn btn-success" onclick="doTimeout(true)">✅ Remove Timeout</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODERATION LOG TABLE -->
+      <div class="card">
+        <div class="card-title">📋 Currently Banned / Timed Out</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>User</th><th>Status</th><th>Timeout Until</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="modTable"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">
+              Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         PROMOS SECTION
+    ══════════════════════════════════ -->
+    <div class="section" id="section-promos">
+      <div class="section-title">🎟️ Promo Codes</div>
+      <div class="section-sub">View all active promo codes</div>
+      <div class="card">
+        <div class="card-title" style="justify-content:space-between">
+          <span>All Promos</span>
+          <button class="btn btn-ghost btn-sm" onclick="loadPromos()">🔄 Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Code</th><th>Item</th><th>Value</th><th>Redeems</th><th>Status</th>
+            </tr></thead>
+            <tbody id="promosTable"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">
+              Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+// GLOBALS
+// ════════════════════════════════════════════════════
+let allUsers = [];
+let allBrainrots = [];
+let allMutations = [];
+let allBotStock = [];
+
+// Picker state
+let pickerMode = null; // 'inv-add' | 'stock-add'
+let pickerSelected = null; // {id, name, emoji, tier, base_value}
+let pickerTraits = 0;
+
+// Pending add-item state
+let pendingInvAdd = null;   // {brainrot_id, mutation_id, traits}
+let pendingStockAdd = null; // {brainrot_id, mutation_id, traits}
+
+// ════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════
+async function init() {
+  await Promise.all([loadBrainrots(), loadMutations(), loadUsers()]);
+  populateMutationDropdown();
+  populateAllUserDropdowns();
+  loadBotStock();
+  loadModTable();
+  loadPromos();
+}
+
+// ════════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════════
+function toast(msg, type='info') {
+  const el = document.createElement('div');
+  el.className = `toast-item ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ════════════════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════════════════
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  // Lazy reload
+  if (name === 'inventory') loadInvUserList();
+  if (name === 'botstock') loadBotStock();
+  if (name === 'moderation') { loadModTable(); populateModDropdowns(); }
+  if (name === 'coins') populateCoinsDropdown();
+}
+
+// ════════════════════════════════════════════════════
+// API HELPERS
+// ════════════════════════════════════════════════════
+async function api(method, url, body) {
+  const opts = {
+    method,
+    credentials: 'same-origin',  // CRITICAL: send session cookie with every request
+    headers: {'Content-Type': 'application/json'},
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  // Check content-type before parsing — a non-JSON response (HTML error page)
+  // means the server threw an unhandled error or we're not authenticated
+  const ct = r.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
+    if (r.status === 401 || r.status === 403) {
+      throw new Error(`Not authenticated (${r.status}) — are you logged in as admin?`);
+    }
+    const text = await r.text();
+    throw new Error(`Server returned non-JSON (${r.status}): ${text.slice(0, 120)}`);
+  }
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || JSON.stringify(data));
+  return data;
+}
+
+function fmtVal(v) {
+  v = parseFloat(v);
+  if (v >= 1000) return (v/1000).toFixed(1) + 'k';
+  if (v % 1 === 0) return String(Math.floor(v));
+  return v.toFixed(1);
+}
+
+// ════════════════════════════════════════════════════
+// LOAD BRAINROTS & MUTATIONS
+// ════════════════════════════════════════════════════
+async function loadBrainrots() {
+  try {
+    allBrainrots = await api('GET', '/api/admin/brainrots');
+  } catch(e) { toast('Failed to load brainrots: ' + e.message, 'error'); }
+}
+
+async function loadMutations() {
+  try {
+    allMutations = await api('GET', '/api/admin/mutations');
+  } catch(e) { toast('Failed to load mutations: ' + e.message, 'error'); }
+}
+
+function populateMutationDropdown() {
+  const sel = document.getElementById('pickerMutation');
+  sel.innerHTML = allMutations.map(m =>
+    `<option value="${m.id}">${m.name} (${m.multiplier}x)</option>`
+  ).join('');
+}
+
+// ════════════════════════════════════════════════════
+// LOAD USERS
+// ════════════════════════════════════════════════════
+async function loadUsers() {
+  try {
+    allUsers = await api('GET', '/api/admin/users');
+    renderUsersTable(allUsers);
+    populateAllUserDropdowns();
+  } catch(e) {
+    document.getElementById('usersTable').innerHTML =
+      `<tr><td colspan="6" style="color:var(--red);padding:16px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function renderUsersTable(users) {
+  const tb = document.getElementById('usersTable');
+  if (!users.length) {
+    tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No users found</td></tr>';
+    return;
+  }
+  tb.innerHTML = users.map(u => `
+    <tr>
+      <td><div class="user-row">
+        ${u.avatar ? `<img class="user-avatar" src="${u.avatar}" onerror="this.style.display='none'"/>` : ''}
+        <div>
+          <div style="font-weight:600">${esc(u.username)}</div>
+          <div style="font-size:11px;color:var(--muted)">${u.id}</div>
+        </div>
+      </div></td>
+      <td style="color:var(--gold)">⬡${fmtVal(u.sabcoins)}</td>
+      <td style="color:var(--text)">⬡${fmtVal(u.net_worth || 0)}</td>
+      <td>${u.total_games || 0}</td>
+      <td>${u.is_banned
+        ? '<span class="badge badge-red">Banned</span>'
+        : u.timeout_until && new Date(u.timeout_until) > new Date()
+          ? '<span class="badge badge-gold">Timed Out</span>'
+          : '<span class="badge badge-green">Active</span>'
+      }</td>
+      <td><div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="quickViewInv('${u.id}','${esc(u.username)}')">🎒 Inv</button>
+        <button class="btn btn-ghost btn-sm" onclick="quickAddCoins('${u.id}','${esc(u.username)}')">🪙 Coins</button>
+      </div></td>
+    </tr>
+  `).join('');
+}
+
+function filterUsers() {
+  const q = document.getElementById('userSearch').value.toLowerCase();
+  const filtered = allUsers.filter(u => u.username.toLowerCase().includes(q) || String(u.id).includes(q));
+  renderUsersTable(filtered);
+}
+
+function populateAllUserDropdowns() {
+  const opts = '<option value="">— select user —</option>' +
+    allUsers.map(u => `<option value="${u.id}">${esc(u.username)} (${u.id})</option>`).join('');
+  ['invAddUser','coinsUser','banUser','timeoutUser'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = opts;
+  });
+}
+
+function populateModDropdowns() { populateAllUserDropdowns(); }
+function populateCoinsDropdown() { populateAllUserDropdowns(); }
+
+// ════════════════════════════════════════════════════
+// ITEM PICKER MODAL
+// ════════════════════════════════════════════════════
+function openPickerForInvAdd() {
+  pickerMode = 'inv-add';
+  pickerSelected = null;
+  pickerTraits = 0;
+  openPicker('Add Item to User');
+}
+
+function openPickerForStock() {
+  pickerMode = 'stock-add';
+  pickerSelected = null;
+  pickerTraits = 0;
+  openPicker('Add Item to Bot Stock');
+}
+
+function openPicker(title) {
+  document.getElementById('pickerTitle').textContent = title;
+  document.getElementById('pickerSearch').value = '';
+  document.getElementById('traitsCount').textContent = '0';
+  document.getElementById('mutationRow').style.display = 'none';
+  document.getElementById('traitsRow').style.display = 'none';
+  document.getElementById('pickerFooter').style.display = 'none';
+  renderPickerList('');
+  document.getElementById('pickerModal').classList.add('open');
+}
+
+function closePicker() {
+  document.getElementById('pickerModal').classList.remove('open');
+  pickerSelected = null;
+}
+
+function filterPicker() {
+  const q = document.getElementById('pickerSearch').value;
+  renderPickerList(q);
+}
+
+function renderPickerList(q) {
+  const list = document.getElementById('pickerList');
+  const filtered = allBrainrots.filter(b =>
+    !q || b.name.toLowerCase().includes(q.toLowerCase())
+  ).sort((a,b) => parseFloat(a.base_value) - parseFloat(b.base_value));
+
+  list.innerHTML = filtered.map(b => {
+    const isSelected = pickerSelected && pickerSelected.id === b.id;
+    return `<div class="picker-item${isSelected?' selected':''}" onclick="selectPickerItem(${b.id})">
+      <span class="picker-item-emoji">${b.emoji}</span>
+      <div class="picker-item-info">
+        <div class="picker-item-name">${esc(b.name)}</div>
+        <div class="picker-item-meta">${b.tier.toUpperCase()} tier</div>
+      </div>
+      <span class="picker-item-val">⬡${fmtVal(b.base_value)}</span>
+    </div>`;
+  }).join('') || '<div style="color:var(--muted);padding:16px;text-align:center">No results</div>';
+}
+
+function selectPickerItem(id) {
+  pickerSelected = allBrainrots.find(b => b.id === id);
+  renderPickerList(document.getElementById('pickerSearch').value);
+  document.getElementById('mutationRow').style.display = 'flex';
+  document.getElementById('traitsRow').style.display = 'flex';
+  document.getElementById('pickerFooter').style.display = 'flex';
+}
+
+function changeTrait(delta) {
+  pickerTraits = Math.max(0, Math.min(10, pickerTraits + delta));
+  document.getElementById('traitsCount').textContent = pickerTraits;
+}
+
+function confirmPicker() {
+  if (!pickerSelected) { toast('Select a brainrot first', 'error'); return; }
+  if (!allMutations.length) { toast('Mutations failed to load — refresh the page', 'error'); return; }
+  const mutId = parseInt(document.getElementById('pickerMutation').value);
+  const mut = allMutations.find(m => m.id === mutId);
+  if (!mut) { toast('Select a mutation from the dropdown', 'error'); return; }
+
+  const val = parseFloat(pickerSelected.base_value) * parseFloat(mut.multiplier) * (1 + pickerTraits * 0.07);
+  const label = `${pickerSelected.emoji} ${pickerSelected.name} [${mut.name}]${pickerTraits > 0 ? ` +${pickerTraits}T` : ''} — ⬡${fmtVal(val)}`;
+
+  if (pickerMode === 'inv-add') {
+    pendingInvAdd = { brainrot_id: pickerSelected.id, mutation_id: mutId, traits: pickerTraits, label };
+    document.getElementById('invItemBtn').textContent = label;
+    const preview = document.getElementById('invAddPreview');
+    preview.textContent = label;
+    preview.style.display = 'inline-block';
+    // Enable add button only if user is also selected
+    const userId = document.getElementById('invAddUser').value;
+    document.getElementById('addItemBtn').disabled = !userId;
+  } else if (pickerMode === 'stock-add') {
+    pendingStockAdd = { brainrot_id: pickerSelected.id, mutation_id: mutId, traits: pickerTraits, label };
+    document.getElementById('stockItemBtn').textContent = label;
+    const preview = document.getElementById('stockAddPreview');
+    preview.textContent = label;
+    preview.style.display = 'inline-block';
+    document.getElementById('addStockBtn').disabled = false;
+  }
+
+  closePicker();
+}
+
+// ════════════════════════════════════════════════════
+// INVENTORY
+// ════════════════════════════════════════════════════
+function loadInvUserList() { populateAllUserDropdowns(); }
+
+function onInvUserChange() {
+  const userId = document.getElementById('invAddUser').value;
+  document.getElementById('addItemBtn').disabled = !userId || !pendingInvAdd;
+  if (userId) loadUserInventory(userId);
+}
+
+async function loadUserInventory(userId) {
+  const user = allUsers.find(u => String(u.id) === String(userId));
+  const card = document.getElementById('invViewCard');
+  const title = document.getElementById('invViewTitle');
+  const tb = document.getElementById('invTable');
+
+  card.style.display = 'block';
+  title.textContent = `${user ? user.username : userId}'s Inventory`;
+  tb.innerHTML = '<tr><td colspan="6" style="color:var(--muted);padding:16px">Loading…</td></tr>';
+
+  try {
+    // We use the admin endpoint that returns any user's inventory
+    const items = await api('GET', `/api/admin/inventory?user_id=${userId}`);
+    if (!items.length) {
+      tb.innerHTML = '<tr><td colspan="6" style="color:var(--muted);padding:16px;text-align:center">No items</td></tr>';
+      return;
+    }
+    tb.innerHTML = items.map(item => `
+      <tr>
+        <td><div class="inv-item">
+          <span class="inv-emoji">${item.emoji}</span>
+          <span style="font-weight:600">${esc(item.name)}</span>
+        </div></td>
+        <td><span class="badge badge-purple">${esc(item.mutation)}</span></td>
+        <td>${item.traits > 0 ? `<span class="badge badge-blue">+${item.traits}T</span>` : '—'}</td>
+        <td style="color:var(--gold)">⬡${fmtVal(item.value)}</td>
+        <td>${item.in_use ? '<span class="badge badge-red">In Use</span>' : '<span class="badge badge-green">Free</span>'}</td>
+        <td>
+          <button class="btn btn-danger btn-sm" onclick="doRemoveItem(${item.id},'${userId}')">🗑️ Remove</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    tb.innerHTML = `<tr><td colspan="6" style="color:var(--red);padding:16px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+async function doAddItem() {
+  const userId = document.getElementById('invAddUser').value;
+  if (!userId) { toast('Select a user', 'error'); return; }
+  if (!pendingInvAdd) { toast('Pick an item first', 'error'); return; }
+
+  const btn = document.getElementById('addItemBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Adding…';
+  try {
+    const res = await api('POST', '/api/admin/additem', {
+      user_id: userId,
+      brainrot_id: pendingInvAdd.brainrot_id,
+      mutation_id: pendingInvAdd.mutation_id,
+      traits: pendingInvAdd.traits,
+    });
+    toast(`✅ Added ${res.emoji} ${res.item_name} [${res.mutation}] to user!`, 'success');
+    pendingInvAdd = null;
+    document.getElementById('invItemBtn').textContent = '🎲 Pick Brainrot';
+    document.getElementById('invAddPreview').style.display = 'none';
+    loadUserInventory(userId);
+  } catch(e) {
+    toast('❌ ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '➕ Add Item';
+  }
+}
+
+async function doRemoveItem(invId, userId) {
+  if (!confirm('Remove this item from the user\'s inventory?')) return;
+  try {
+    await api('POST', '/api/admin/removeitem', { inventory_id: invId });
+    toast('🗑️ Item removed', 'success');
+    loadUserInventory(userId);
+  } catch(e) {
+    toast('❌ ' + e.message, 'error');
+  }
+}
+
+// Quick-view from Users table
+function quickViewInv(userId, username) {
+  showSection('inventory');
+  const sel = document.getElementById('invAddUser');
+  sel.value = userId;
+  onInvUserChange();
+}
+
+// ════════════════════════════════════════════════════
+// BOT STOCK
+// ════════════════════════════════════════════════════
+async function loadBotStock() {
+  const tb = document.getElementById('stockTable');
+  try {
+    allBotStock = await api('GET', '/api/botstock');
+    if (!allBotStock.length) {
+      tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Bot stock is empty</td></tr>';
+      return;
+    }
+    tb.innerHTML = allBotStock.map(s => `
+      <tr>
+        <td style="color:var(--muted)">#${s.id}</td>
+        <td><div class="inv-item">
+          <span class="inv-emoji">${s.emoji}</span>
+          <span style="font-weight:600">${esc(s.name)}</span>
+        </div></td>
+        <td><span class="badge badge-purple">${esc(s.mutation)}</span></td>
+        <td>${s.traits > 0 ? `<span class="badge badge-blue">+${s.traits}T</span>` : '—'}</td>
+        <td style="color:var(--gold)">⬡${fmtVal(s.value)}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="doRemoveStock(${s.id})">🗑️ Remove</button></td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    tb.innerHTML = `<tr><td colspan="6" style="color:var(--red);padding:16px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+async function doAddBotStock() {
+  if (!pendingStockAdd) { toast('Pick an item first', 'error'); return; }
+  const btn = document.getElementById('addStockBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Adding…';
+  try {
+    const res = await api('POST', '/api/admin/addbotstock', {
+      brainrot_id: pendingStockAdd.brainrot_id,
+      mutation_id: pendingStockAdd.mutation_id,
+      traits: pendingStockAdd.traits,
+    });
+    toast(`✅ Added to bot stock! ID #${res.stock_id}`, 'success');
+    pendingStockAdd = null;
+    document.getElementById('stockItemBtn').textContent = '🎲 Pick Brainrot';
+    document.getElementById('stockAddPreview').style.display = 'none';
+    loadBotStock();
+  } catch(e) {
+    toast('❌ ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '➕ Add to Stock';
+  }
+}
+
+async function doRemoveStock(stockId) {
+  if (!confirm('Remove this item from bot stock?')) return;
+  try {
+    await api('POST', '/api/admin/removebotstock', { stock_id: stockId });
+    toast('🗑️ Removed from bot stock', 'success');
+    loadBotStock();
+  } catch(e) {
+    toast('❌ ' + e.message, 'error');
+  }
+}
+
+// ════════════════════════════════════════════════════
+// SC COINS
+// ════════════════════════════════════════════════════
+async function doCoins() {
+  const userId = document.getElementById('coinsUser').value;
+  const amount = parseFloat(document.getElementById('coinsAmount').value);
+  const action = document.getElementById('coinsAction').value;
+
+  if (!userId) { toast('Select a user', 'error'); return; }
+  if (!amount || amount <= 0) { toast('Enter a valid amount', 'error'); return; }
+
+  try {
+    const res = await api('POST', '/api/admin/addcoins', { user_id: userId, amount, action });
+    toast(`✅ ${res.username}: new balance ⬡${fmtVal(res.new_balance)}`, 'success');
+    const pc = document.getElementById('coinsPreviewCard');
+    pc.style.display = 'block';
+    document.getElementById('coinsPreview').textContent = `⬡${fmtVal(res.new_balance)}`;
+    // Update local cache
+    const u = allUsers.find(u => String(u.id) === String(userId));
+    if (u) u.sabcoins = res.new_balance;
+  } catch(e) {
+    toast('❌ ' + e.message, 'error');
+  }
+}
+
+function quickAddCoins(userId, username) {
+  showSection('coins');
+  const sel = document.getElementById('coinsUser');
+  sel.value = userId;
+}
+
+// ════════════════════════════════════════════════════
+// MODERATION
+// ════════════════════════════════════════════════════
+async function loadBanStatus() {
+  const userId = document.getElementById('banUser').value;
+  const el = document.getElementById('banStatus');
+  if (!userId) { el.style.display = 'none'; return; }
+  const u = allUsers.find(u => String(u.id) === String(userId));
+  if (!u) return;
+  el.style.display = 'block';
+  el.innerHTML = u.is_banned
+    ? '<span class="badge badge-red">Currently BANNED</span>'
+    : '<span class="badge badge-green">Not banned</span>';
+}
+
+async function loadTimeoutStatus() {
+  const userId = document.getElementById('timeoutUser').value;
+  const el = document.getElementById('timeoutStatus');
+  if (!userId) { el.style.display = 'none'; return; }
+  const u = allUsers.find(u => String(u.id) === String(userId));
+  if (!u) return;
+  el.style.display = 'block';
+  if (u.timeout_until && new Date(u.timeout_until) > new Date()) {
+    const until = new Date(u.timeout_until).toLocaleString();
+    el.innerHTML = `<span class="badge badge-gold">Timed out until ${until}</span>`;
+  } else {
+    el.innerHTML = '<span class="badge badge-green">No timeout</span>';
+  }
+}
+
+async function doBan(banned) {
+  const userId = document.getElementById('banUser').value;
+  if (!userId) { toast('Select a user', 'error'); return; }
+  try {
+    const res = await api('POST', '/api/admin/setban', { user_id: userId, banned });
+    toast(`✅ ${res.username} ${res.action}`, 'success');
+    // Update local cache
+    const u = allUsers.find(u => String(u.id) === String(userId));
+    if (u) u.is_banned = banned;
+    loadBanStatus();
+    loadModTable();
+  } catch(e) {
+    toast('❌ ' + e.message, 'error');
+  }
+}
+
+async function doTimeout(remove) {
+  const userId = document.getElementById('timeoutUser').value;
+  if (!userId) { toast('Select a user', 'error'); return; }
+  const hours = remove ? 0 : parseFloat(document.getElementById('timeoutHours').value);
+  if (!remove && (!hours || hours <= 0)) { toast('Enter timeout duration in hours', 'error'); return; }
+  try {
+    const res = await api('POST', '/api/admin/settimeout', { user_id: userId, hours, remove });
+    toast(`✅ ${res.username}: ${res.action}`, 'success');
+    const u = allUsers.find(u => String(u.id) === String(userId));
+    if (u) u.timeout_until = res.timeout_until || null;
+    loadTimeoutStatus();
+    loadModTable();
+  } catch(e) {
+    toast('❌ ' + e.message, 'error');
+  }
+}
+
+async function loadModTable() {
+  const tb = document.getElementById('modTable');
+  try {
+    const users = await api('GET', '/api/admin/users');
+    allUsers = users; // refresh cache too
+    const modded = users.filter(u => u.is_banned || (u.timeout_until && new Date(u.timeout_until) > new Date()));
+    if (!modded.length) {
+      tb.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:16px">No users banned or timed out</td></tr>';
+      return;
+    }
+    tb.innerHTML = modded.map(u => {
+      const until = u.timeout_until ? new Date(u.timeout_until).toLocaleString() : '—';
+      return `<tr>
+        <td><div class="user-row">
+          <span style="font-weight:600">${esc(u.username)}</span>
+          <span style="font-size:11px;color:var(--muted)">${u.id}</span>
+        </div></td>
+        <td>${u.is_banned ? '<span class="badge badge-red">Banned</span>' : '<span class="badge badge-gold">Timed Out</span>'}</td>
+        <td style="font-size:12px;color:var(--muted)">${until}</td>
+        <td><div style="display:flex;gap:6px">
+          ${u.is_banned ? `<button class="btn btn-success btn-sm" onclick="quickUnban('${u.id}')">✅ Unban</button>` : ''}
+          ${u.timeout_until && new Date(u.timeout_until) > new Date()
+            ? `<button class="btn btn-success btn-sm" onclick="quickUntime('${u.id}')">✅ Remove Timeout</button>` : ''}
+        </div></td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    tb.innerHTML = `<tr><td colspan="4" style="color:var(--red);padding:16px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+async function quickUnban(userId) {
+  try {
+    const res = await api('POST', '/api/admin/setban', { user_id: userId, banned: false });
+    toast(`✅ ${res.username} unbanned`, 'success');
+    const u = allUsers.find(u => String(u.id) === String(userId));
+    if (u) u.is_banned = false;
+    loadModTable();
+  } catch(e) { toast('❌ ' + e.message, 'error'); }
+}
+
+async function quickUntime(userId) {
+  try {
+    const res = await api('POST', '/api/admin/settimeout', { user_id: userId, remove: true });
+    toast(`✅ ${res.username} timeout removed`, 'success');
+    const u = allUsers.find(u => String(u.id) === String(userId));
+    if (u) u.timeout_until = null;
+    loadModTable();
+  } catch(e) { toast('❌ ' + e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════
+// PROMOS
+// ════════════════════════════════════════════════════
+async function loadPromos() {
+  const tb = document.getElementById('promosTable');
+  try {
+    const promos = await api('GET', '/api/admin/promos');
+    if (!promos.length) {
+      tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px">No promo codes</td></tr>';
+      return;
+    }
+    tb.innerHTML = promos.map(p => `
+      <tr>
+        <td><code style="background:var(--surface);padding:2px 8px;border-radius:4px">${esc(p.code)}</code></td>
+        <td>${p.emoji} ${esc(p.item_name)} [${esc(p.mutation_name)}]</td>
+        <td style="color:var(--gold)">⬡${fmtVal(p.value)}</td>
+        <td>${p.redeems} / ${p.max_redeems}</td>
+        <td>${p.active ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-red">Expired</span>'}</td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    tb.innerHTML = `<tr><td colspan="5" style="color:var(--red);padding:16px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+// ════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ════════════════════════════════════════════════════
+// START
+// ════════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
