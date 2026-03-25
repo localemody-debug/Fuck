@@ -1450,3 +1450,282 @@ async def api_admin_promos(request: Request):
         "mutation_name": r["mutation_name"], "value": float(r["value"]),
         "max_redeems": r["max_redeems"], "redeems": r["redeems"], "active": r["active"],
     } for r in rows])
+# ══════════════════════════════════════════════════════════════════════════════
+# ADMIN PANEL — routes to ADD to server.py
+# Paste this entire block at the END of server.py (before any if __name__ block)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ─── ADMIN PANEL PAGE ────────────────────────────────────────────────────────
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_panel(request: Request):
+    """Serve the admin panel HTML. Requires admin session."""
+    await require_admin(request)
+    import os as _os
+    panel_path = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "templates", "admin.html")
+    if not _os.path.exists(panel_path):
+        raise HTTPException(404, "Admin panel template not found")
+    with open(panel_path) as f:
+        return HTMLResponse(f.read())
+
+
+# ─── ADMIN API: LIST USERS ────────────────────────────────────────────────────
+
+@app.get("/api/admin/users")
+async def admin_list_users(request: Request):
+    await require_admin(request)
+    pool = await db.get_pool()
+    rows = await pool.fetch("""
+        SELECT u.id, u.username, u.avatar, u.total_games, u.total_wins,
+               u.sabcoins, u.is_banned, u.login_code,
+               COALESCE(SUM(ROUND(b.base_value * m.multiplier * (1 + i.traits * 0.07), 2)), 0) AS net_worth
+        FROM users u
+        LEFT JOIN inventory i ON i.user_id = u.id
+        LEFT JOIN brainrots b ON i.brainrot_id = b.id
+        LEFT JOIN mutations m ON i.mutation_id = m.id
+        GROUP BY u.id
+        ORDER BY net_worth DESC
+    """)
+    return JSONResponse([{
+        "id": r["id"],
+        "username": r["username"],
+        "avatar": r["avatar"],
+        "total_games": r["total_games"],
+        "total_wins": r["total_wins"],
+        "sabcoins": float(r["sabcoins"] or 0),
+        "is_banned": r["is_banned"],
+        "login_code": r["login_code"],
+        "net_worth": float(r["net_worth"]),
+    } for r in rows])
+
+
+# ─── ADMIN API: USER INVENTORY ────────────────────────────────────────────────
+
+@app.get("/api/admin/inventory/{user_id}")
+async def admin_user_inventory(user_id: int, request: Request):
+    await require_admin(request)
+    pool = await db.get_pool()
+    items = await pool.fetch("""
+        SELECT i.id, b.name, b.emoji, b.tier, b.image_url,
+               m.name AS mutation, m.multiplier, i.traits, i.in_use,
+               ROUND(b.base_value * m.multiplier * (1 + i.traits * 0.07), 2) AS value
+        FROM inventory i
+        JOIN brainrots b ON i.brainrot_id = b.id
+        JOIN mutations m ON i.mutation_id = m.id
+        WHERE i.user_id = $1
+        ORDER BY value DESC
+    """, user_id)
+    return JSONResponse([{
+        "id": i["id"], "name": i["name"], "emoji": i["emoji"], "tier": i["tier"],
+        "image_url": i["image_url"], "mutation": i["mutation"],
+        "multiplier": float(i["multiplier"]), "traits": i["traits"],
+        "in_use": i["in_use"], "value": float(i["value"])
+    } for i in items])
+
+
+# ─── ADMIN API: BRAINROTS / MUTATIONS ────────────────────────────────────────
+
+@app.get("/api/admin/brainrots")
+async def admin_brainrots(request: Request):
+    await require_admin(request)
+    pool = await db.get_pool()
+    rows = await db.get_all_brainrots(pool)
+    return JSONResponse([{
+        "id": r["id"], "name": r["name"], "base_value": float(r["base_value"]),
+        "tier": r["tier"], "emoji": r["emoji"]
+    } for r in rows])
+
+
+@app.get("/api/admin/mutations")
+async def admin_mutations(request: Request):
+    await require_admin(request)
+    pool = await db.get_pool()
+    rows = await db.get_all_mutations(pool)
+    return JSONResponse([{
+        "id": r["id"], "name": r["name"], "multiplier": float(r["multiplier"])
+    } for r in rows])
+
+
+# ─── ADMIN API: ADD ITEM TO USER ─────────────────────────────────────────────
+
+@app.post("/api/admin/additem")
+async def admin_add_item(request: Request):
+    await require_admin(request)
+    body = await request.json()
+    user_id     = body.get("user_id")
+    brainrot_id = body.get("brainrot_id")
+    mutation_id = body.get("mutation_id")
+    traits      = int(body.get("traits", 0))
+
+    if not all([user_id, brainrot_id, mutation_id]):
+        raise HTTPException(400, "Missing fields")
+    if traits < 0 or traits > 10:
+        raise HTTPException(400, "Traits must be 0–10")
+
+    pool = await db.get_pool()
+
+    # Make sure user exists
+    user = await pool.fetchrow("SELECT id FROM users WHERE id = $1", int(user_id))
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    inv_id = await db.add_item_to_inventory(pool, int(user_id), int(brainrot_id), int(mutation_id), traits)
+
+    # Fetch item details for response
+    row = await pool.fetchrow("""
+        SELECT b.name, b.emoji, m.name AS mutation, m.multiplier,
+               ROUND(b.base_value * m.multiplier * (1 + $3 * 0.07), 2) AS value
+        FROM brainrots b, mutations m
+        WHERE b.id = $1 AND m.id = $2
+    """, int(brainrot_id), int(mutation_id), traits)
+
+    return JSONResponse({
+        "inventory_id": inv_id,
+        "name": row["name"],
+        "emoji": row["emoji"],
+        "mutation": row["mutation"],
+        "value": float(row["value"]),
+    })
+
+
+# ─── ADMIN API: ADD TO BOT STOCK ─────────────────────────────────────────────
+
+@app.post("/api/admin/addbotstock")
+async def admin_add_bot_stock(request: Request):
+    await require_admin(request)
+    body = await request.json()
+    brainrot_id = body.get("brainrot_id")
+    mutation_id = body.get("mutation_id")
+    traits      = int(body.get("traits", 0))
+
+    if not all([brainrot_id, mutation_id]):
+        raise HTTPException(400, "Missing fields")
+
+    pool = await db.get_pool()
+    stock_id = await db.add_to_bot_stock(pool, int(brainrot_id), int(mutation_id), traits)
+
+    row = await pool.fetchrow("""
+        SELECT b.name, b.emoji, m.name AS mutation,
+               ROUND(b.base_value * m.multiplier * (1 + $3 * 0.07), 2) AS value
+        FROM brainrots b, mutations m
+        WHERE b.id = $1 AND m.id = $2
+    """, int(brainrot_id), int(mutation_id), traits)
+
+    return JSONResponse({
+        "stock_id": stock_id,
+        "name": row["name"],
+        "emoji": row["emoji"],
+        "mutation": row["mutation"],
+        "value": float(row["value"]),
+    })
+
+
+# ─── ADMIN API: REMOVE FROM BOT STOCK ────────────────────────────────────────
+
+@app.delete("/api/admin/removebotstock/{stock_id}")
+async def admin_remove_bot_stock(stock_id: int, request: Request):
+    await require_admin(request)
+    pool = await db.get_pool()
+    item = await pool.fetchrow("SELECT id FROM bot_stock WHERE id = $1", stock_id)
+    if not item:
+        raise HTTPException(404, "Stock item not found")
+    await db.remove_from_bot_stock(pool, stock_id)
+    return JSONResponse({"success": True})
+
+
+# ─── ADMIN API: SC COINS ─────────────────────────────────────────────────────
+
+@app.post("/api/admin/sccoins")
+async def admin_sc_coins(request: Request):
+    await require_admin(request)
+    body   = await request.json()
+    user_id = body.get("user_id")
+    action  = body.get("action")   # "add" | "remove" | "set"
+    amount  = float(body.get("amount", 0))
+
+    if not user_id or action not in ("add", "remove", "set"):
+        raise HTTPException(400, "Invalid request")
+    if amount < 0:
+        raise HTTPException(400, "Amount cannot be negative")
+
+    pool = await db.get_pool()
+    user = await pool.fetchrow("SELECT id FROM users WHERE id = $1", int(user_id))
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    if action == "add":
+        await db.credit_sabcoins(pool, int(user_id), amount)
+    elif action == "remove":
+        success = await db.debit_sabcoins(pool, int(user_id), amount)
+        if not success:
+            bal = await db.get_sabcoins(pool, int(user_id))
+            raise HTTPException(400, f"Insufficient balance ({db.format_value(bal)} SC)")
+    elif action == "set":
+        await pool.execute("UPDATE users SET sabcoins = $2 WHERE id = $1", int(user_id), amount)
+
+    new_bal = await db.get_sabcoins(pool, int(user_id))
+    return JSONResponse({"success": True, "new_balance": new_bal})
+
+
+# ─── ADMIN API: CREATE COINFLIP (multi-item) ─────────────────────────────────
+# BUG FIX: The original /api/coinflip/create only accepted ONE inventory_id.
+# This admin endpoint accepts multiple inventory_ids, bundles their combined
+# value, creates a SINGLE coinflip game referencing the FIRST item, and marks
+# all selected items as in_use so they can't be double-wagered.
+# The joiner takes everything when they win.
+
+@app.post("/api/admin/createcoinflip")
+async def admin_create_coinflip(request: Request):
+    await require_admin(request)
+    body          = await request.json()
+    user_id       = body.get("user_id")
+    inventory_ids = body.get("inventory_ids", [])
+    side          = body.get("side")
+
+    if side not in ("fire", "ice"):
+        raise HTTPException(400, "Invalid side — must be 'fire' or 'ice'")
+    if not inventory_ids:
+        raise HTTPException(400, "No items selected")
+    if not user_id:
+        raise HTTPException(400, "No user specified")
+
+    pool = await db.get_pool()
+
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            # Verify all items belong to the user and are not in_use
+            items = await conn.fetch("""
+                SELECT i.id,
+                       ROUND(b.base_value * m.multiplier * (1 + i.traits * 0.07), 2) AS value
+                FROM inventory i
+                JOIN brainrots b ON i.brainrot_id = b.id
+                JOIN mutations m ON i.mutation_id = m.id
+                WHERE i.id = ANY($1::int[])
+                  AND i.user_id = $2
+                  AND i.in_use = FALSE
+            """, inventory_ids, int(user_id))
+
+            if len(items) != len(inventory_ids):
+                raise HTTPException(400, "Some items not found, not owned by this user, or already in use")
+
+            total_value = sum(float(i["value"]) for i in items)
+            primary_id  = inventory_ids[0]
+
+            # Mark all selected items in_use atomically
+            await conn.execute(
+                "UPDATE inventory SET in_use = TRUE WHERE id = ANY($1::int[])",
+                inventory_ids
+            )
+
+            # Create the coinflip game using the first item as the primary reference
+            game_id = await conn.fetchval("""
+                INSERT INTO coinflip_games (creator_id, creator_inventory_id, creator_side)
+                VALUES ($1, $2, $3) RETURNING id
+            """, int(user_id), primary_id, side)
+
+    return JSONResponse({
+        "game_id":     game_id,
+        "total_value": total_value,
+        "item_count":  len(inventory_ids),
+        "side":        side,
+    })
