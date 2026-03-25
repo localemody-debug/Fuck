@@ -101,9 +101,22 @@ class BrainrotSelectPage2(discord.ui.Select):
                 emoji=b['emoji'],
                 description=f"⬡{b['base_value']} | {b['tier'].upper()}"
             )
-            for b in brainrots[25:]
+            for b in brainrots[25:50]  # FIX: was brainrots[25:] which included >25 items
         ]
         super().__init__(placeholder="Select brainrot (page 2)", options=options)
+
+class BrainrotSelectPage3(discord.ui.Select):
+    def __init__(self, brainrots):
+        options = [
+            discord.SelectOption(
+                label=b['name'][:100],
+                value=str(b['id']),
+                emoji=b['emoji'],
+                description=f"⬡{b['base_value']} | {b['tier'].upper()}"
+            )
+            for b in brainrots[50:]  # page 3: brainrots 51-57
+        ]
+        super().__init__(placeholder="Select brainrot (page 3)", options=options)
 
 class MutationSelect(discord.ui.Select):
     def __init__(self, mutations):
@@ -151,6 +164,15 @@ class AddItemView(discord.ui.View):
             self.br2_select = BrainrotSelectPage2(brainrots)
             self.br2_select.callback = br_cb2
             self.add_item(self.br2_select)
+
+        # Page 3 for brainrots 51+
+        if len(brainrots) > 50:
+            async def br_cb3(interaction):
+                self.selected_brainrot = int(self.br3_select.values[0])
+                await interaction.response.defer()
+            self.br3_select = BrainrotSelectPage3(brainrots)
+            self.br3_select.callback = br_cb3
+            self.add_item(self.br3_select)
 
         self.add_item(self.mut_select)
 
@@ -352,6 +374,8 @@ class RemoveItemSelect(discord.ui.Select):
         if not item:
             await interaction.response.send_message("Item not found.", ephemeral=True)
             return
+        # Release in_use lock first — if item is in an active game, FK will block delete
+        await self.pool.execute("UPDATE inventory SET in_use=FALSE WHERE id=$1", inv_id)
         await db.remove_item_from_inventory(self.pool, inv_id)
         embed = discord.Embed(title="🗑️ Item Removed", color=RED)
         embed.add_field(name="Item",     value=f"{item['emoji']} {item['name']}", inline=True)
