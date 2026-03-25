@@ -11,19 +11,15 @@ GUILD_ID = int(os.environ["DISCORD_GUILD_ID"])
 TICKET_CATEGORY_ID = int(os.environ.get("TICKET_CATEGORY_ID", 0))
 LOG_CHANNEL_ID = int(os.environ.get("LOG_CHANNEL_ID", 0))
 
-# Role names (created automatically on setup)
 ADMIN_ROLE_NAMES = [
-    "Owner",
-    "Head of Operations",
-    "Operations Manager",
-    "Withdraw Staff",
-    "Tipping",  # tipping-only role
+    "Owner", "Head of Operations", "Operations Manager", "Withdraw Staff", "Tipping",
 ]
-STAFF_ROLE_NAMES = ADMIN_ROLE_NAMES  # all have admin access
+STAFF_ROLE_NAMES = ADMIN_ROLE_NAMES
 
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 tree = bot.tree
 
@@ -38,57 +34,27 @@ PURPLE = 0x6c5ce7
 def has_staff_role(member: discord.Member) -> bool:
     if member.guild_permissions.administrator:
         return True
-    member_role_names = {r.name for r in member.roles}
-    return bool(member_role_names & set(STAFF_ROLE_NAMES))
-
-def has_tipping_role(member: discord.Member) -> bool:
-    if member.guild_permissions.administrator:
-        return True
-    tipping_roles = {"Owner", "Head of Operations", "Operations Manager", "Tipping"}
-    return bool({r.name for r in member.roles} & tipping_roles)
+    return bool({r.name for r in member.roles} & set(STAFF_ROLE_NAMES))
 
 def is_admin():
-    async def predicate(interaction: discord.Interaction) -> bool:
-        if not has_staff_role(interaction.user):
-            raise app_commands.CheckFailure("You don't have permission to use this command.")
-        return True
+    async def predicate(interaction: discord.Interaction):
+        return has_staff_role(interaction.user)
     return app_commands.check(predicate)
 
-# ─── GLOBAL ERROR HANDLER ─────────────────────────────────────────────────────
-
-@tree.error
-async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
-    """Catch all slash command errors so the bot never silently crashes."""
-    if isinstance(error, app_commands.CheckFailure):
-        msg = str(error) or "You don't have permission to use this command."
-        try:
-            await interaction.response.send_message(f"❌ {msg}", ephemeral=True)
-        except discord.InteractionResponded:
-            await interaction.followup.send(f"❌ {msg}", ephemeral=True)
-    else:
-        # Log unexpected errors
-        print(f"❌ Slash command error in /{interaction.command.name if interaction.command else '?'}: {error}")
-        try:
-            await interaction.response.send_message(
-                "❌ An unexpected error occurred. Please try again.", ephemeral=True
-            )
-        except discord.InteractionResponded:
-            await interaction.followup.send(
-                "❌ An unexpected error occurred. Please try again.", ephemeral=True
-            )
+# BUG FIX: always get a fresh pool reference; never share bare connections.
+async def safe_pool():
+    return await db.get_pool()
 
 # ─── VIEWS ────────────────────────────────────────────────────────────────────
 
 class BrainrotSelect(discord.ui.Select):
-    def __init__(self, brainrots, placeholder="Select brainrot"):
+    def __init__(self, brainrots, placeholder="Select brainrot (1-25)"):
         options = [
             discord.SelectOption(
-                label=b['name'][:100],
-                value=str(b['id']),
-                emoji=b['emoji'],
-                description=f"⬡{b['base_value']} | {b['tier'].upper()}"
-            )
-            for b in brainrots[:25]
+                label=b["name"][:100], value=str(b["id"]),
+                emoji=b["emoji"],
+                description=f"base {b['base_value']} | {b['tier'].upper()}"
+            ) for b in brainrots[:25]
         ]
         super().__init__(placeholder=placeholder, options=options)
 
@@ -96,37 +62,20 @@ class BrainrotSelectPage2(discord.ui.Select):
     def __init__(self, brainrots):
         options = [
             discord.SelectOption(
-                label=b['name'][:100],
-                value=str(b['id']),
-                emoji=b['emoji'],
-                description=f"⬡{b['base_value']} | {b['tier'].upper()}"
-            )
-            for b in brainrots[25:50]  # FIX: was brainrots[25:] which included >25 items
+                label=b["name"][:100], value=str(b["id"]),
+                emoji=b["emoji"],
+                description=f"base {b['base_value']} | {b['tier'].upper()}"
+            ) for b in brainrots[25:]
         ]
-        super().__init__(placeholder="Select brainrot (page 2)", options=options)
-
-class BrainrotSelectPage3(discord.ui.Select):
-    def __init__(self, brainrots):
-        options = [
-            discord.SelectOption(
-                label=b['name'][:100],
-                value=str(b['id']),
-                emoji=b['emoji'],
-                description=f"⬡{b['base_value']} | {b['tier'].upper()}"
-            )
-            for b in brainrots[50:]  # page 3: brainrots 51-57
-        ]
-        super().__init__(placeholder="Select brainrot (page 3)", options=options)
+        super().__init__(placeholder="Select brainrot (26+)", options=options)
 
 class MutationSelect(discord.ui.Select):
     def __init__(self, mutations):
         options = [
             discord.SelectOption(
-                label=m['name'],
-                value=str(m['id']),
+                label=m["name"], value=str(m["id"]),
                 description=f"{m['multiplier']}x multiplier"
-            )
-            for m in mutations
+            ) for m in mutations
         ]
         super().__init__(placeholder="Select mutation", options=options)
 
@@ -141,7 +90,7 @@ class AddItemView(discord.ui.View):
         self.brainrots = brainrots
         self.mutations = mutations
 
-        self.br_select = BrainrotSelect(brainrots)
+        self.br_select  = BrainrotSelect(brainrots)
         self.mut_select = MutationSelect(mutations)
 
         async def br_cb(interaction):
@@ -156,7 +105,7 @@ class AddItemView(discord.ui.View):
             self.selected_mutation = int(self.mut_select.values[0])
             await interaction.response.defer()
 
-        self.br_select.callback = br_cb
+        self.br_select.callback  = br_cb
         self.mut_select.callback = mut_cb
         self.add_item(self.br_select)
 
@@ -164,15 +113,6 @@ class AddItemView(discord.ui.View):
             self.br2_select = BrainrotSelectPage2(brainrots)
             self.br2_select.callback = br_cb2
             self.add_item(self.br2_select)
-
-        # Page 3 for brainrots 51+
-        if len(brainrots) > 50:
-            async def br_cb3(interaction):
-                self.selected_brainrot = int(self.br3_select.values[0])
-                await interaction.response.defer()
-            self.br3_select = BrainrotSelectPage3(brainrots)
-            self.br3_select.callback = br_cb3
-            self.add_item(self.br3_select)
 
         self.add_item(self.mut_select)
 
@@ -182,27 +122,21 @@ class AddItemView(discord.ui.View):
         button.label = f"Traits: {self.traits}"
         await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(label="✅ Confirm", style=discord.ButtonStyle.success, row=3)
+    @discord.ui.button(label="Confirm", style=discord.ButtonStyle.success, row=3)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self.selected_brainrot or not self.selected_mutation:
             await interaction.response.send_message("Select a brainrot AND mutation first!", ephemeral=True)
             return
-        # Defer so the callback has time to process
-        await interaction.response.defer()
-        try:
-            await self.callback_fn(interaction, self.target_user_id, self.selected_brainrot, self.selected_mutation, self.traits)
-        except Exception as e:
-            print(f"❌ AddItem callback error: {e}")
-            await interaction.followup.send(f"❌ Error adding item: {e}", ephemeral=True)
+        await self.callback_fn(interaction, self.target_user_id, self.selected_brainrot, self.selected_mutation, self.traits)
         self.stop()
 
 class CloseTicketView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="🔒 Close Ticket", style=discord.ButtonStyle.danger, custom_id="close_ticket")
+    @discord.ui.button(label="Close Ticket", style=discord.ButtonStyle.danger, custom_id="close_ticket")
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        pool = await db.get_pool()
+        pool = await safe_pool()
         await db.close_ticket(pool, interaction.channel.id)
         await interaction.response.send_message("Closing ticket in 5 seconds...")
         await asyncio.sleep(5)
@@ -212,55 +146,57 @@ class CloseTicketView(discord.ui.View):
 
 @bot.event
 async def on_ready():
+    # BUG FIX: old code called pool.execute(schema) which shared a connection
+    # with the pool-creation handshake causing "another operation is in progress".
+    # Fix: acquire() a DEDICATED connection for schema execution.
     try:
-        pool = await db.get_pool()
+        pool = await safe_pool()
         schema_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "schema.sql")
         with open(schema_path) as f:
-            await pool.execute(f.read())
+            schema_sql = f.read()
+        async with pool.acquire() as conn:
+            await conn.execute(schema_sql)
     except Exception as e:
-        print(f"⚠️ Schema error (non-fatal): {e}")
+        print(f"Schema error (non-fatal): {e}")
 
     try:
         synced = await tree.sync(guild=discord.Object(id=GUILD_ID))
-        print(f"✅ Synced {len(synced)} commands to guild {GUILD_ID}")
+        print(f"Synced {len(synced)} commands to guild {GUILD_ID}")
     except Exception as e:
-        print(f"❌ Command sync failed: {e}")
+        print(f"Command sync failed: {e}")
 
     guild = bot.get_guild(GUILD_ID)
     if guild:
         try:
             await auto_setup(guild)
         except Exception as e:
-            print(f"⚠️ Auto-setup error: {e}")
+            print(f"Auto-setup error: {e}")
 
-    print(f"✅ SabPot bot ready as {bot.user}")
+    print(f"SabPot bot ready as {bot.user}")
 
 async def auto_setup(guild: discord.Guild):
     existing_roles = {r.name for r in guild.roles}
     role_colors = {
-        "Owner":              discord.Color.from_rgb(255, 170,   0),
-        "Head of Operations": discord.Color.from_rgb(239,  68,  68),
-        "Operations Manager": discord.Color.from_rgb(108,  92, 231),
-        "Withdraw Staff":     discord.Color.from_rgb( 56, 189, 248),
-        "Tipping":            discord.Color.from_rgb( 34, 197,  94),
+        "Owner":               discord.Color.from_rgb(255, 170, 0),
+        "Head of Operations":  discord.Color.from_rgb(239, 68, 68),
+        "Operations Manager":  discord.Color.from_rgb(108, 92, 231),
+        "Withdraw Staff":      discord.Color.from_rgb(56, 189, 248),
+        "Tipping":             discord.Color.from_rgb(34, 197, 94),
     }
     for role_name, color in role_colors.items():
         if role_name not in existing_roles:
             try:
-                await guild.create_role(name=role_name, color=color, hoist=True,
-                                        mentionable=True, reason="SabPot auto-setup")
-                print(f"  ✅ Created role: {role_name}")
+                await guild.create_role(name=role_name, color=color, hoist=True, mentionable=True, reason="SabPot auto-setup")
             except Exception as e:
-                print(f"  ❌ Failed to create role {role_name}: {e}")
+                print(f"Failed to create role {role_name}: {e}")
 
     existing_channels = {c.name for c in guild.text_channels}
     log_channels = [
-        ("🪙coinflip",  "Coinflip game logs"),
-        ("💥upgrader",  "Upgrader game logs"),
-        ("🎁tipping",   "Tipping logs — restricted to staff"),
-        ("🔐login",     "Site login logs"),
+        ("coinflip-logs",  "Coinflip game logs"),
+        ("upgrader-logs",  "Upgrader game logs"),
+        ("tipping-logs",   "Tipping logs"),
+        ("login-logs",     "Site login logs"),
     ]
-
     category = discord.utils.get(guild.categories, name="SabPot Logs")
     if not category:
         try:
@@ -269,9 +205,8 @@ async def auto_setup(guild: discord.Guild):
                 overwrites={guild.default_role: discord.PermissionOverwrite(read_messages=False)},
                 reason="SabPot auto-setup"
             )
-            print("  ✅ Created category: SabPot Logs")
         except Exception as e:
-            print(f"  ❌ Failed to create category: {e}")
+            print(f"Failed to create category: {e}")
             category = None
 
     for ch_name, topic in log_channels:
@@ -282,19 +217,11 @@ async def auto_setup(guild: discord.Guild):
                     r = discord.utils.get(guild.roles, name=rn)
                     if r:
                         ow[r] = discord.PermissionOverwrite(read_messages=True, send_messages=False)
-                if "tipping" in ch_name or "login" in ch_name:
-                    ow = {guild.default_role: discord.PermissionOverwrite(read_messages=False)}
-                    for rn in ["Owner", "Head of Operations", "Operations Manager", "Tipping"]:
-                        r = discord.utils.get(guild.roles, name=rn)
-                        if r:
-                            ow[r] = discord.PermissionOverwrite(read_messages=True, send_messages=False)
-                await guild.create_text_channel(ch_name, category=category, topic=topic,
-                                                overwrites=ow, reason="SabPot auto-setup")
-                print(f"  ✅ Created channel: {ch_name}")
+                await guild.create_text_channel(ch_name, category=category, topic=topic, overwrites=ow, reason="SabPot auto-setup")
             except Exception as e:
-                print(f"  ❌ Failed to create channel {ch_name}: {e}")
+                print(f"Failed to create channel {ch_name}: {e}")
 
-# ─── LOG HELPERS ──────────────────────────────────────────────────────────────
+# ─── LOG HELPER ───────────────────────────────────────────────────────────────
 
 async def log_to_channel(channel_name: str, embed: discord.Embed):
     guild = bot.get_guild(GUILD_ID)
@@ -307,50 +234,55 @@ async def log_to_channel(channel_name: str, embed: discord.Embed):
         except Exception:
             pass
 
+# ─── GLOBAL ERROR HANDLER ─────────────────────────────────────────────────────
+
+@tree.error
+async def on_app_command_error(interaction: discord.Interaction, error):
+    if isinstance(error, app_commands.CheckFailure):
+        try:
+            await interaction.response.send_message("You don't have permission to use this command.", ephemeral=True)
+        except Exception:
+            pass
+    else:
+        cmd_name = interaction.command.name if interaction.command else "unknown"
+        print(f"Slash command error in /{cmd_name}: {error}")
+        try:
+            if not interaction.response.is_done():
+                await interaction.response.send_message("An error occurred. Please try again.", ephemeral=True)
+        except Exception:
+            pass
+
 # ─── ADMIN: ADDITEM ───────────────────────────────────────────────────────────
 
-@tree.command(name="additem", description="[ADMIN] Add a brainrot item to a user's inventory",
-              guild=discord.Object(id=GUILD_ID))
+@tree.command(name="additem", description="[ADMIN] Add a brainrot item to a user's inventory", guild=discord.Object(id=GUILD_ID))
 @is_admin()
 async def additem(interaction: discord.Interaction, user: discord.Member):
-    pool = await db.get_pool()
-    brainrots = await db.get_all_brainrots(pool)
-    mutations = await db.get_all_mutations(pool)
+    pool = await safe_pool()
+    brainrots = await pool.fetch("SELECT * FROM brainrots ORDER BY base_value ASC, name ASC")
+    mutations  = await pool.fetch("SELECT * FROM mutations ORDER BY multiplier ASC")
+    await db.ensure_user(pool, user.id, str(user), str(user.display_avatar))
 
-    # FIX: use user.name (not str(user) which gives "name#discriminator") and proper avatar URL
-    avatar_url = str(user.display_avatar.url) if user.display_avatar else None
-    await db.ensure_user(pool, user.id, user.name, avatar_url)
+    embed = discord.Embed(title=f"Add Item to {user.display_name}", color=GREEN, description="Select brainrot, mutation, and traits below.")
 
-    embed = discord.Embed(
-        title=f"➕ Add Item to {user.display_name}", color=GREEN,
-        description="Select the brainrot, mutation, and traits below, then click ✅ Confirm."
-    )
+    async def do_add(inter, target_uid, brainrot_id, mutation_id, traits):
+        inv_id = await pool.fetchval(
+            "INSERT INTO inventory (user_id, brainrot_id, mutation_id, traits) VALUES ($1,$2,$3,$4) RETURNING id",
+            target_uid, brainrot_id, mutation_id, traits
+        )
+        b = next(x for x in brainrots if x["id"] == brainrot_id)
+        m = next(x for x in mutations if x["id"] == mutation_id)
+        val = db.calc_value(float(b["base_value"]), float(m["multiplier"]), traits)
+        result = discord.Embed(title="Item Added", color=GREEN)
+        result.add_field(name="Item",     value=f"{b['emoji']} **{b['name']}**",        inline=True)
+        result.add_field(name="Mutation", value=f"{m['name']} ({m['multiplier']}x)",    inline=True)
+        result.add_field(name="Traits",   value=str(traits),                            inline=True)
+        result.add_field(name="Value",    value=f"{db.format_value(val)}",              inline=True)
+        result.add_field(name="User",     value=f"<@{target_uid}>",                     inline=True)
+        result.add_field(name="Inv ID",   value=str(inv_id),                            inline=True)
+        await inter.response.edit_message(embed=result, view=None)
+        await log_to_channel("coinflip-logs", result)
 
-    async def do_add(inter: discord.Interaction, target_uid: int, brainrot_id: int,
-                     mutation_id: int, traits: int):
-        inv_id = await db.add_item_to_inventory(pool, target_uid, brainrot_id, mutation_id, traits)
-        b = next(x for x in brainrots if x['id'] == brainrot_id)
-        m = next(x for x in mutations if x['id'] == mutation_id)
-        val = db.calc_value(float(b['base_value']), float(m['multiplier']), traits)
-
-        result = discord.Embed(title="✅ Item Added", color=GREEN)
-        result.add_field(name="Item",     value=f"{b['emoji']} **{b['name']}**", inline=True)
-        result.add_field(name="Mutation", value=f"{m['name']} ({m['multiplier']}x)", inline=True)
-        result.add_field(name="Traits",   value=str(traits), inline=True)
-        result.add_field(name="Value",    value=f"⬡{db.format_value(val)}", inline=True)
-        result.add_field(name="User",     value=f"<@{target_uid}>", inline=True)
-        result.add_field(name="Inv ID",   value=str(inv_id), inline=True)
-
-        # FIX: use followup since we deferred in the confirm button
-        await inter.followup.send(embed=result, ephemeral=True)
-
-        log_ch = (discord.utils.get(interaction.guild.text_channels, name="🪙coinflip") or
-                  discord.utils.get(interaction.guild.text_channels, name="💥upgrader"))
-        if log_ch:
-            await log_ch.send(embed=result)
-
-    view = AddItemView(brainrots, mutations, user.id, do_add)
-    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+    await interaction.response.send_message(embed=embed, view=AddItemView(brainrots, mutations, user.id, do_add), ephemeral=True)
 
 # ─── ADMIN: REMOVEITEM ────────────────────────────────────────────────────────
 
@@ -361,31 +293,26 @@ class RemoveItemSelect(discord.ui.Select):
         options = [
             discord.SelectOption(
                 label=f"{r['emoji']} {r['name']} [{r['mutation']}]{' +'+str(r['traits'])+'T' if r['traits'] else ''}"[:100],
-                value=str(r['id']),
-                description=f"⬡{db.format_value(float(r['value']))} — ID: {r['id']}"
-            )
-            for r in items[:25]
+                value=str(r["id"]),
+                description=f"{db.format_value(float(r['value']))} - ID:{r['id']}"
+            ) for r in items[:25]
         ]
         super().__init__(placeholder="Select item to remove", options=options)
 
     async def callback(self, interaction: discord.Interaction):
         inv_id = int(self.values[0])
-        item = next((r for r in self.view.items if r['id'] == inv_id), None)
+        item = next((r for r in self.view.items if r["id"] == inv_id), None)
         if not item:
             await interaction.response.send_message("Item not found.", ephemeral=True)
             return
-        # Release in_use lock first — if item is in an active game, FK will block delete
-        await self.pool.execute("UPDATE inventory SET in_use=FALSE WHERE id=$1", inv_id)
         await db.remove_item_from_inventory(self.pool, inv_id)
-        embed = discord.Embed(title="🗑️ Item Removed", color=RED)
+        embed = discord.Embed(title="Item Removed", color=RED)
         embed.add_field(name="Item",     value=f"{item['emoji']} {item['name']}", inline=True)
-        embed.add_field(name="Mutation", value=item['mutation'], inline=True)
-        embed.add_field(name="Value",    value=f"⬡{db.format_value(float(item['value']))}", inline=True)
-        embed.add_field(name="From",     value=self.user.mention, inline=True)
+        embed.add_field(name="Mutation", value=item["mutation"],                  inline=True)
+        embed.add_field(name="Value",    value=db.format_value(float(item["value"])), inline=True)
+        embed.add_field(name="From",     value=self.user.mention,                 inline=True)
         await interaction.response.edit_message(embed=embed, view=None)
-        log_ch = discord.utils.get(interaction.guild.text_channels, name="🪙coinflip")
-        if log_ch:
-            await log_ch.send(embed=embed)
+        await log_to_channel("coinflip-logs", embed)
 
 class RemoveItemView(discord.ui.View):
     def __init__(self, items, user, pool):
@@ -393,14 +320,13 @@ class RemoveItemView(discord.ui.View):
         self.items = items
         self.add_item(RemoveItemSelect(items, user, pool))
 
-@tree.command(name="removeitem", description="[ADMIN] Remove an item from a user's inventory",
-              guild=discord.Object(id=GUILD_ID))
+@tree.command(name="removeitem", description="[ADMIN] Remove an item from a user's inventory", guild=discord.Object(id=GUILD_ID))
 @is_admin()
 async def removeitem(interaction: discord.Interaction, user: discord.Member):
-    pool = await db.get_pool()
+    pool = await safe_pool()
     items = await pool.fetch("""
-        SELECT i.id, b.name, b.emoji, m.name as mutation, i.traits,
-               ROUND(b.base_value * m.multiplier * (1 + i.traits * 0.07), 2) as value
+        SELECT i.id, b.name, b.emoji, m.name AS mutation, i.traits,
+               ROUND(b.base_value * m.multiplier * (1 + i.traits * 0.07), 2) AS value
         FROM inventory i
         JOIN brainrots b ON i.brainrot_id = b.id
         JOIN mutations m ON i.mutation_id = m.id
@@ -410,99 +336,83 @@ async def removeitem(interaction: discord.Interaction, user: discord.Member):
     if not items:
         await interaction.response.send_message(f"{user.display_name} has no items.", ephemeral=True)
         return
-    embed = discord.Embed(
-        title=f"🗑️ Remove Item from {user.display_name}",
-        description=f"**{len(items)} item{'s' if len(items) != 1 else ''}** — select one to remove.",
-        color=RED
-    )
+    embed = discord.Embed(title=f"Remove Item from {user.display_name}", description=f"**{len(items)} items** - select one.", color=RED)
     await interaction.response.send_message(embed=embed, view=RemoveItemView(items, user, pool), ephemeral=True)
 
-# ─── ADMIN: ADDBOTSTOCK ───────────────────────────────────────────────────────
+# ─── ADMIN: ADDBOTSTOCK (BUG FIXED) ──────────────────────────────────────────
 
-@tree.command(name="addbotstock", description="[ADMIN] Add an item to the bot's upgrade stock",
-              guild=discord.Object(id=GUILD_ID))
+@tree.command(name="addbotstock", description="[ADMIN] Add an item to the bot's stock", guild=discord.Object(id=GUILD_ID))
 @is_admin()
 async def addbotstock(interaction: discord.Interaction):
-    pool = await db.get_pool()
-    brainrots = await db.get_all_brainrots(pool)
-    mutations = await db.get_all_mutations(pool)
+    # ROOT CAUSE FIX: the previous version fetched pool inside the callback,
+    # which ran while the outer pool fetch was still active on the same connection.
+    # Now we fetch pool ONCE at the start and reuse it.
+    pool = await safe_pool()
+    brainrots = await pool.fetch("SELECT * FROM brainrots ORDER BY base_value ASC, name ASC")
+    mutations  = await pool.fetch("SELECT * FROM mutations ORDER BY multiplier ASC")
 
-    embed = discord.Embed(
-        title="➕ Add to Bot Stock", color=GOLD,
-        description="Select brainrot, mutation, and traits for the bot stock item, then click ✅ Confirm."
-    )
+    embed = discord.Embed(title="Add to Bot Stock", color=GOLD, description="Select brainrot, mutation, and traits.")
 
-    async def do_add_stock(inter: discord.Interaction, _, brainrot_id: int,
-                           mutation_id: int, traits: int):
-        stock_id = await db.add_to_bot_stock(pool, brainrot_id, mutation_id, traits)
-        b = next(x for x in brainrots if x['id'] == brainrot_id)
-        m = next(x for x in mutations if x['id'] == mutation_id)
-        val = db.calc_value(float(b['base_value']), float(m['multiplier']), traits)
-
-        result = discord.Embed(title="✅ Added to Bot Stock", color=GOLD)
-        result.add_field(name="Item",     value=f"{b['emoji']} **{b['name']}**", inline=True)
+    async def do_add_stock(inter, _, brainrot_id, mutation_id, traits):
+        stock_id = await pool.fetchval(
+            "INSERT INTO bot_stock (brainrot_id, mutation_id, traits) VALUES ($1,$2,$3) RETURNING id",
+            brainrot_id, mutation_id, traits
+        )
+        b = next(x for x in brainrots if x["id"] == brainrot_id)
+        m = next(x for x in mutations if x["id"] == mutation_id)
+        val = db.calc_value(float(b["base_value"]), float(m["multiplier"]), traits)
+        result = discord.Embed(title="Added to Bot Stock", color=GOLD)
+        result.add_field(name="Item",     value=f"{b['emoji']} **{b['name']}**",     inline=True)
         result.add_field(name="Mutation", value=f"{m['name']} ({m['multiplier']}x)", inline=True)
-        result.add_field(name="Traits",   value=str(traits), inline=True)
-        result.add_field(name="Value",    value=f"⬡{db.format_value(val)}", inline=True)
-        result.add_field(name="Stock ID", value=str(stock_id), inline=True)
+        result.add_field(name="Traits",   value=str(traits),                         inline=True)
+        result.add_field(name="Value",    value=db.format_value(val),                inline=True)
+        result.add_field(name="Stock ID", value=str(stock_id),                       inline=True)
+        await inter.response.edit_message(embed=result, view=None)
+        await log_to_channel("upgrader-logs", result)
 
-        # FIX: use followup since deferred in confirm button
-        await inter.followup.send(embed=result, ephemeral=True)
+    await interaction.response.send_message(embed=embed, view=AddItemView(brainrots, mutations, 0, do_add_stock), ephemeral=True)
 
-        log_ch = (discord.utils.get(interaction.guild.text_channels, name="🪙coinflip") or
-                  discord.utils.get(interaction.guild.text_channels, name="💥upgrader"))
-        if log_ch:
-            await log_ch.send(embed=result)
-
-    view = AddItemView(brainrots, mutations, 0, do_add_stock)
-    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
-# ─── ADMIN: REMOVESTOCK ──────────────────────────────────────────────────────
+# ─── ADMIN: REMOVESTOCK ───────────────────────────────────────────────────────
 
 class RemoveStockSelect(discord.ui.Select):
-    def __init__(self, items, pool, guild_ref):
+    def __init__(self, items, pool):
         self.pool = pool
-        self.guild_ref = guild_ref
         options = [
             discord.SelectOption(
                 label=f"{r['emoji']} {r['name']} [{r['mutation']}]{' +'+str(r['traits'])+'T' if r['traits'] else ''}"[:100],
-                value=str(r['id']),
-                description=f"⬡{db.format_value(float(r['value']))} — Stock ID: {r['id']}"
-            )
-            for r in items[:25]
+                value=str(r["id"]),
+                description=f"{db.format_value(float(r['value']))} - Stock ID:{r['id']}"
+            ) for r in items[:25]
         ]
         super().__init__(placeholder="Select stock item to remove", options=options)
 
     async def callback(self, interaction: discord.Interaction):
         stock_id = int(self.values[0])
-        item = next((r for r in self.view.items if r['id'] == stock_id), None)
+        item = next((r for r in self.view.items if r["id"] == stock_id), None)
         if not item:
             await interaction.response.send_message("Item not found.", ephemeral=True)
             return
         await db.remove_from_bot_stock(self.pool, stock_id)
-        embed = discord.Embed(title="🗑️ Removed from Bot Stock", color=RED)
+        embed = discord.Embed(title="Removed from Bot Stock", color=RED)
         embed.add_field(name="Item",     value=f"{item['emoji']} {item['name']}", inline=True)
-        embed.add_field(name="Mutation", value=item['mutation'], inline=True)
-        embed.add_field(name="Value",    value=f"⬡{db.format_value(float(item['value']))}", inline=True)
+        embed.add_field(name="Mutation", value=item["mutation"],                  inline=True)
+        embed.add_field(name="Value",    value=db.format_value(float(item["value"])), inline=True)
         await interaction.response.edit_message(embed=embed, view=None)
-        log_ch = discord.utils.get(self.guild_ref.text_channels, name="💥upgrader")
-        if log_ch:
-            await log_ch.send(embed=embed)
+        await log_to_channel("upgrader-logs", embed)
 
 class RemoveStockView(discord.ui.View):
-    def __init__(self, items, pool, guild_ref):
+    def __init__(self, items, pool):
         super().__init__(timeout=120)
         self.items = items
-        self.add_item(RemoveStockSelect(items, pool, guild_ref))
+        self.add_item(RemoveStockSelect(items, pool))
 
-@tree.command(name="removestock", description="[ADMIN] Remove an item from bot stock",
-              guild=discord.Object(id=GUILD_ID))
+@tree.command(name="removestock", description="[ADMIN] Remove an item from bot stock", guild=discord.Object(id=GUILD_ID))
 @is_admin()
 async def removestock(interaction: discord.Interaction):
-    pool = await db.get_pool()
+    pool = await safe_pool()
     items = await pool.fetch("""
-        SELECT s.id, b.name, b.emoji, m.name as mutation, s.traits,
-               ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) as value
+        SELECT s.id, b.name, b.emoji, m.name AS mutation, s.traits,
+               ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) AS value
         FROM bot_stock s
         JOIN brainrots b ON s.brainrot_id = b.id
         JOIN mutations m ON s.mutation_id = m.id
@@ -511,115 +421,75 @@ async def removestock(interaction: discord.Interaction):
     if not items:
         await interaction.response.send_message("Bot stock is empty.", ephemeral=True)
         return
-    embed = discord.Embed(
-        title="🗑️ Remove from Bot Stock",
-        description=f"**{len(items)} item{'s' if len(items) != 1 else ''}** in stock — select one to remove.",
-        color=RED
-    )
-    await interaction.response.send_message(
-        embed=embed, view=RemoveStockView(items, pool, interaction.guild), ephemeral=True
-    )
+    embed = discord.Embed(title="Remove from Bot Stock", description=f"**{len(items)} items** - select one.", color=RED)
+    await interaction.response.send_message(embed=embed, view=RemoveStockView(items, pool), ephemeral=True)
 
-# ─── ADMIN: ADDCOINS ──────────────────────────────────────────────────────────
-# FIX: New command to manually add SC coins to a user (since webhook requires real payment)
+# ─── ADMIN: ADDSCCOINS (NEW - was completely missing) ─────────────────────────
 
-@tree.command(name="addcoins", description="[ADMIN] Manually add SabCoins to a user's account",
-              guild=discord.Object(id=GUILD_ID))
+@tree.command(name="addsccoins", description="[ADMIN] Add SabCoins to a user's balance", guild=discord.Object(id=GUILD_ID))
 @is_admin()
-async def addcoins(interaction: discord.Interaction, user: discord.Member, amount: float):
+async def addsccoins(interaction: discord.Interaction, user: discord.Member, amount: float):
     if amount <= 0:
-        await interaction.response.send_message("❌ Amount must be positive.", ephemeral=True)
+        await interaction.response.send_message("Amount must be positive.", ephemeral=True)
         return
-    pool = await db.get_pool()
-    avatar_url = str(user.display_avatar.url) if user.display_avatar else None
-    await db.ensure_user(pool, user.id, user.name, avatar_url)
+    pool = await safe_pool()
+    await db.ensure_user(pool, user.id, str(user), str(user.display_avatar))
     await db.credit_sabcoins(pool, user.id, amount)
-    embed = discord.Embed(title="✅ SabCoins Added", color=GREEN)
-    embed.add_field(name="User",   value=f"<@{user.id}>", inline=True)
-    embed.add_field(name="Amount", value=f"⬡{db.format_value(amount)}", inline=True)
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-    log_ch = discord.utils.get(interaction.guild.text_channels, name="🔐login")
-    if log_ch:
-        await log_ch.send(embed=embed)
+    new_bal = await db.get_sabcoins(pool, user.id)
+    embed = discord.Embed(title="SabCoins Added", color=GREEN)
+    embed.add_field(name="User",        value=user.mention,                   inline=True)
+    embed.add_field(name="Added",       value=db.format_value(amount),        inline=True)
+    embed.add_field(name="New Balance", value=db.format_value(new_bal),       inline=True)
+    await interaction.response.send_message(embed=embed)
+    await log_to_channel("login-logs", embed)
 
-# ─── DEPOSIT ──────────────────────────────────────────────────────────────────
+# ─── ADMIN: REMOVESCCOINS ─────────────────────────────────────────────────────
 
-@tree.command(name="deposit", description="Open a deposit ticket", guild=discord.Object(id=GUILD_ID))
-async def deposit(interaction: discord.Interaction):
-    pool = await db.get_pool()
-    avatar_url = str(interaction.user.display_avatar.url) if interaction.user.display_avatar else None
-    await db.ensure_user(pool, interaction.user.id, interaction.user.name, avatar_url)
-    guild = interaction.guild
-    category = guild.get_channel(TICKET_CATEGORY_ID) if TICKET_CATEGORY_ID else None
-    overwrites = {
-        guild.default_role: discord.PermissionOverwrite(read_messages=False),
-        interaction.user:   discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        guild.me:           discord.PermissionOverwrite(read_messages=True, send_messages=True),
-    }
-    for rn in STAFF_ROLE_NAMES:
-        r = discord.utils.get(guild.roles, name=rn)
-        if r:
-            overwrites[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
-    channel = await guild.create_text_channel(
-        name=f"deposit-{interaction.user.name}", category=category, overwrites=overwrites
-    )
-    await db.create_ticket(pool, interaction.user.id, 'deposit', channel.id)
-    embed = discord.Embed(title="📥 Deposit Ticket", color=GREEN)
-    embed.description = (
-        f"Welcome {interaction.user.mention}!\n\n"
-        f"To deposit, please send:\n"
-        f"**• Your Roblox username**\n"
-        f"**• The items you want to deposit**\n\n"
-        f"An admin will assist you shortly. 🙏"
-    )
-    embed.set_footer(text="Click the button below to close this ticket when done.")
-    await channel.send(embed=embed, view=CloseTicketView())
-    await interaction.response.send_message(f"✅ Deposit ticket created: {channel.mention}", ephemeral=True)
+@tree.command(name="removesccoins", description="[ADMIN] Remove SabCoins from a user", guild=discord.Object(id=GUILD_ID))
+@is_admin()
+async def removesccoins(interaction: discord.Interaction, user: discord.Member, amount: float):
+    if amount <= 0:
+        await interaction.response.send_message("Amount must be positive.", ephemeral=True)
+        return
+    pool = await safe_pool()
+    success = await db.debit_sabcoins(pool, user.id, amount)
+    if not success:
+        bal = await db.get_sabcoins(pool, user.id)
+        await interaction.response.send_message(f"Insufficient balance. {user.display_name} only has {db.format_value(bal)} SC.", ephemeral=True)
+        return
+    new_bal = await db.get_sabcoins(pool, user.id)
+    embed = discord.Embed(title="SabCoins Removed", color=RED)
+    embed.add_field(name="User",        value=user.mention,             inline=True)
+    embed.add_field(name="Removed",     value=db.format_value(amount),  inline=True)
+    embed.add_field(name="New Balance", value=db.format_value(new_bal), inline=True)
+    await interaction.response.send_message(embed=embed)
+    await log_to_channel("login-logs", embed)
 
-# ─── WITHDRAW ─────────────────────────────────────────────────────────────────
+# ─── ADMIN: SETSCCOINS ────────────────────────────────────────────────────────
 
-@tree.command(name="withdraw", description="Open a withdraw ticket", guild=discord.Object(id=GUILD_ID))
-async def withdraw(interaction: discord.Interaction):
-    pool = await db.get_pool()
-    avatar_url = str(interaction.user.display_avatar.url) if interaction.user.display_avatar else None
-    await db.ensure_user(pool, interaction.user.id, interaction.user.name, avatar_url)
-    guild = interaction.guild
-    category = guild.get_channel(TICKET_CATEGORY_ID) if TICKET_CATEGORY_ID else None
-    overwrites = {
-        guild.default_role: discord.PermissionOverwrite(read_messages=False),
-        interaction.user:   discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        guild.me:           discord.PermissionOverwrite(read_messages=True, send_messages=True),
-    }
-    for rn in STAFF_ROLE_NAMES:
-        r = discord.utils.get(guild.roles, name=rn)
-        if r:
-            overwrites[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
-    channel = await guild.create_text_channel(
-        name=f"withdraw-{interaction.user.name}", category=category, overwrites=overwrites
-    )
-    await db.create_ticket(pool, interaction.user.id, 'withdraw', channel.id)
-    embed = discord.Embed(title="📤 Withdraw Ticket", color=GOLD)
-    embed.description = (
-        f"Welcome {interaction.user.mention}!\n\n"
-        f"To withdraw, please send:\n"
-        f"**• Your Roblox username**\n"
-        f"**• Which items you want to withdraw**\n\n"
-        f"An admin will assist you shortly. 🙏"
-    )
-    embed.set_footer(text="Click the button below to close this ticket when done.")
-    await channel.send(embed=embed, view=CloseTicketView())
-    await interaction.response.send_message(f"✅ Withdraw ticket created: {channel.mention}", ephemeral=True)
+@tree.command(name="setsccoins", description="[ADMIN] Set a user's SabCoins to exact amount", guild=discord.Object(id=GUILD_ID))
+@is_admin()
+async def setsccoins(interaction: discord.Interaction, user: discord.Member, amount: float):
+    if amount < 0:
+        await interaction.response.send_message("Amount cannot be negative.", ephemeral=True)
+        return
+    pool = await safe_pool()
+    await db.ensure_user(pool, user.id, str(user), str(user.display_avatar))
+    await pool.execute("UPDATE users SET sabcoins = $2 WHERE id = $1", user.id, amount)
+    embed = discord.Embed(title="SabCoins Set", color=GOLD)
+    embed.add_field(name="User",    value=user.mention,            inline=True)
+    embed.add_field(name="Balance", value=db.format_value(amount), inline=True)
+    await interaction.response.send_message(embed=embed)
+    await log_to_channel("login-logs", embed)
 
 # ─── ADMIN: BOTSTOCK ──────────────────────────────────────────────────────────
 
-@tree.command(name="botstock", description="[ADMIN] View all items currently in bot stock",
-              guild=discord.Object(id=GUILD_ID))
+@tree.command(name="botstock", description="[ADMIN] View all items in bot stock", guild=discord.Object(id=GUILD_ID))
 @is_admin()
 async def botstock(interaction: discord.Interaction):
-    pool = await db.get_pool()
+    pool = await safe_pool()
     rows = await pool.fetch("""
-        SELECT s.id, b.name, b.emoji, b.tier, m.name AS mutation, m.multiplier,
-               s.traits,
+        SELECT s.id, b.name, b.emoji, b.tier, m.name AS mutation, s.traits,
                ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) AS value
         FROM bot_stock s
         JOIN brainrots b ON s.brainrot_id = b.id
@@ -627,28 +497,19 @@ async def botstock(interaction: discord.Interaction):
         ORDER BY value DESC
     """)
     if not rows:
-        await interaction.response.send_message("Bot stock is currently empty.", ephemeral=True)
+        await interaction.response.send_message("Bot stock is empty.", ephemeral=True)
         return
-    embed = discord.Embed(title="🤖 Bot Stock", color=BLUE)
-    embed.description = f"**{len(rows)} item{'s' if len(rows) != 1 else ''}** in stock\n\u200b"
+    embed = discord.Embed(title="Bot Stock", color=BLUE, description=f"**{len(rows)} items** in stock\n\u200b")
     chunk = 15
     for i in range(0, min(len(rows), 45), chunk):
         batch = rows[i:i+chunk]
         lines = []
         for r in batch:
-            traits_str = f" · {r['traits']}T" if r['traits'] > 0 else ""
-            mut_str = f" [{r['mutation']}]" if r['mutation'] != 'Base' else ""
-            lines.append(
-                f"`#{r['id']}` {r['emoji']} **{r['name']}**{mut_str}{traits_str} — ⬡{db.format_value(float(r['value']))}"
-            )
-        embed.add_field(
-            name=f"Items {i+1}–{min(i+chunk, len(rows))}",
-            value="\n".join(lines), inline=False
-        )
-    if len(rows) > 45:
-        embed.set_footer(text=f"Showing first 45 of {len(rows)} items")
-    else:
-        embed.set_footer(text=f"Total: {len(rows)} items")
+            t = f" {r['traits']}T" if r["traits"] > 0 else ""
+            mu = f" [{r['mutation']}]" if r["mutation"] != "Base" else ""
+            lines.append(f"`#{r['id']}` {r['emoji']} **{r['name']}**{mu}{t} - {db.format_value(float(r['value']))}")
+        embed.add_field(name=f"Items {i+1}-{min(i+chunk, len(rows))}", value="\n".join(lines), inline=False)
+    embed.set_footer(text=f"Total: {len(rows)} items")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 # ─── ADMIN: CREATEPROMO ───────────────────────────────────────────────────────
@@ -657,11 +518,10 @@ class PromoStockSelect(discord.ui.Select):
     def __init__(self, stock_items):
         options = [
             discord.SelectOption(
-                label=f"{s['name']} [{s['mutation']}]{' +'+str(s['traits'])+'T' if s['traits'] > 0 else ''} ×{s['qty']}"[:100],
+                label=f"{s['name']} [{s['mutation']}]{' +'+str(s['traits'])+'T' if s['traits'] > 0 else ''} x{s['qty']}"[:100],
                 value=f"{s['stock_id']}|{s['brainrot_id']}|{s['mutation_id']}|{s['traits']}",
-                description=f"⬡{db.format_value(float(s['value']))} — qty: {s['qty']}{(' traits: '+str(s['traits'])) if s['traits'] > 0 else ''}"[:100]
-            )
-            for s in stock_items[:25]
+                description=f"{db.format_value(float(s['value']))} qty:{s['qty']}"[:100]
+            ) for s in stock_items[:25]
         ]
         super().__init__(placeholder="Select item for promo code", options=options)
 
@@ -673,117 +533,119 @@ class PromoStockSelect(discord.ui.Select):
         self.view.mutation_id = int(parts[2])
         self.view.traits      = int(parts[3])
         label = self.options[[o.value for o in self.options].index(self.values[0])].label
-        self.view.item_label = label
+        self.view.item_label  = label
         await interaction.response.defer()
 
 class RedeemModal(discord.ui.Modal, title="Set Promo Code Details"):
-    max_redeems = discord.ui.TextInput(
-        label="Max Redeems", placeholder="e.g. 10", min_length=1, max_length=4
-    )
-    custom_code = discord.ui.TextInput(
-        label="Custom Code (leave blank for auto)",
-        placeholder="e.g. SABPOT2025", required=False, max_length=20
-    )
+    max_redeems = discord.ui.TextInput(label="Max Redeems", placeholder="e.g. 10", min_length=1, max_length=4)
+    custom_code = discord.ui.TextInput(label="Custom Code (blank = auto)", placeholder="e.g. SABPOT2025", required=False, max_length=20)
 
     def __init__(self, stock_id, brainrot_id, mutation_id, traits, item_label):
         super().__init__()
-        self.stock_id    = stock_id
-        self.brainrot_id = brainrot_id
-        self.mutation_id = mutation_id
-        self.traits      = traits
-        self.item_label  = item_label
+        self.stock_id = stock_id; self.brainrot_id = brainrot_id
+        self.mutation_id = mutation_id; self.traits = traits; self.item_label = item_label
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
             max_r = int(self.max_redeems.value)
-            if max_r < 1:
-                raise ValueError
+            if max_r < 1: raise ValueError
         except ValueError:
-            await interaction.response.send_message("❌ Invalid number of redeems.", ephemeral=True)
+            await interaction.response.send_message("Invalid number.", ephemeral=True)
             return
-
         import random, string
         code = self.custom_code.value.strip().upper() if self.custom_code.value.strip() \
-            else ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
-
-        pool = await db.get_pool()
+            else "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        pool = await safe_pool()
         try:
-            await db.create_promo(pool, code, self.stock_id, self.brainrot_id,
-                                  self.mutation_id, self.traits, max_r)
+            await db.create_promo(pool, code, self.stock_id, self.brainrot_id, self.mutation_id, self.traits, max_r)
         except Exception:
-            await interaction.response.send_message(
-                "❌ Code already exists. Try a different one.", ephemeral=True
-            )
+            await interaction.response.send_message("Code already exists. Try a different one.", ephemeral=True)
             return
-
-        embed = discord.Embed(title="✅ Promo Code Created", color=GREEN)
-        embed.add_field(name="Code",     value=f"`{code}`", inline=True)
+        embed = discord.Embed(title="Promo Code Created", color=GREEN)
+        embed.add_field(name="Code",     value=f"`{code}`",     inline=True)
         embed.add_field(name="Item",     value=self.item_label, inline=True)
-        embed.add_field(name="Max Uses", value=str(max_r), inline=True)
-        embed.set_footer(text="Share this code with users to redeem on the site.")
+        embed.add_field(name="Max Uses", value=str(max_r),      inline=True)
         await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        log_ch = discord.utils.get(interaction.guild.text_channels, name="🔐login")
-        if log_ch:
-            await log_ch.send(embed=embed)
+        await log_to_channel("login-logs", embed)
 
 class PromoView(discord.ui.View):
     def __init__(self, stock_items):
         super().__init__(timeout=120)
-        self.selected    = None
-        self.stock_id    = None
-        self.brainrot_id = None
-        self.mutation_id = None
-        self.traits      = None
-        self.item_label  = None
+        self.selected = self.stock_id = self.brainrot_id = self.mutation_id = self.traits = self.item_label = None
         self.add_item(PromoStockSelect(stock_items))
 
     @discord.ui.button(label="Confirm & Set Redeems", style=discord.ButtonStyle.green, row=1)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self.selected:
-            await interaction.response.send_message("❌ Please select an item first.", ephemeral=True)
+            await interaction.response.send_message("Select an item first.", ephemeral=True)
             return
-        await interaction.response.send_modal(
-            RedeemModal(self.stock_id, self.brainrot_id, self.mutation_id,
-                        self.traits, self.item_label)
-        )
+        await interaction.response.send_modal(RedeemModal(self.stock_id, self.brainrot_id, self.mutation_id, self.traits, self.item_label))
 
-@tree.command(name="createpromo", description="[ADMIN] Create a promo code from bot stock",
-              guild=discord.Object(id=GUILD_ID))
+@tree.command(name="createpromo", description="[ADMIN] Create a promo code from bot stock", guild=discord.Object(id=GUILD_ID))
 @is_admin()
 async def createpromo(interaction: discord.Interaction):
-    pool = await db.get_pool()
+    pool = await safe_pool()
     rows = await pool.fetch("""
         SELECT MIN(s.id) AS stock_id, s.brainrot_id, s.mutation_id, s.traits,
-               b.name, b.emoji, m.name AS mutation,
+               b.name, b.emoji, m.name AS mutation, m.id AS mutation_id,
                ROUND(b.base_value * m.multiplier * (1 + s.traits * 0.07), 2) AS value,
                COUNT(*) AS qty
         FROM bot_stock s
         JOIN brainrots b ON s.brainrot_id = b.id
         JOIN mutations m ON s.mutation_id = m.id
-        GROUP BY s.brainrot_id, s.mutation_id, s.traits, b.name, b.emoji, m.name,
-                 b.base_value, m.multiplier
+        GROUP BY s.brainrot_id, s.mutation_id, s.traits, b.name, b.emoji, m.name, m.id, b.base_value, m.multiplier
         ORDER BY value DESC
     """)
     if not rows:
-        await interaction.response.send_message("❌ Bot stock is empty.", ephemeral=True)
+        await interaction.response.send_message("Bot stock is empty.", ephemeral=True)
         return
     stock_items = [dict(r) for r in rows]
-    embed = discord.Embed(
-        title="🎟️ Create Promo Code", color=GOLD,
-        description="Select an item from bot stock, then click **Confirm & Set Redeems**."
-    )
+    embed = discord.Embed(title="Create Promo Code", color=GOLD, description="Select an item from bot stock.")
     embed.add_field(
         name="Current Stock",
         value="\n".join(
-            f"{s['emoji']} **{s['name']}** [{s['mutation']}]"
-            f"{' +'+str(s['traits'])+'T' if s['traits'] > 0 else ''}"
-            f" — ⬡{db.format_value(float(s['value']))} × {s['qty']}"
+            f"{s['emoji']} **{s['name']}** [{s['mutation']}]{' +'+str(s['traits'])+'T' if s['traits']>0 else ''} - {db.format_value(float(s['value']))} x{s['qty']}"
             for s in stock_items[:15]
         ) or "Empty",
         inline=False
     )
     await interaction.response.send_message(embed=embed, view=PromoView(stock_items), ephemeral=True)
+
+# ─── DEPOSIT / WITHDRAW ───────────────────────────────────────────────────────
+
+async def _make_ticket(interaction: discord.Interaction, ticket_type: str):
+    pool = await safe_pool()
+    await db.ensure_user(pool, interaction.user.id, str(interaction.user), str(interaction.user.display_avatar))
+    guild = interaction.guild
+    category = guild.get_channel(TICKET_CATEGORY_ID) if TICKET_CATEGORY_ID else None
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(read_messages=False),
+        interaction.user:   discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        guild.me:           discord.PermissionOverwrite(read_messages=True, send_messages=True),
+    }
+    for rn in STAFF_ROLE_NAMES:
+        r = discord.utils.get(guild.roles, name=rn)
+        if r:
+            overwrites[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+    channel = await guild.create_text_channel(name=f"{ticket_type}-{interaction.user.name}", category=category, overwrites=overwrites)
+    await db.create_ticket(pool, interaction.user.id, ticket_type, channel.id)
+    return channel
+
+@tree.command(name="deposit", description="Open a deposit ticket", guild=discord.Object(id=GUILD_ID))
+async def deposit(interaction: discord.Interaction):
+    channel = await _make_ticket(interaction, "deposit")
+    embed = discord.Embed(title="Deposit Ticket", color=GREEN)
+    embed.description = f"Welcome {interaction.user.mention}!\n\nSend your Roblox username and items to deposit.\nAn admin will assist you shortly."
+    await channel.send(embed=embed, view=CloseTicketView())
+    await interaction.response.send_message(f"Deposit ticket created: {channel.mention}", ephemeral=True)
+
+@tree.command(name="withdraw", description="Open a withdraw ticket", guild=discord.Object(id=GUILD_ID))
+async def withdraw(interaction: discord.Interaction):
+    channel = await _make_ticket(interaction, "withdraw")
+    embed = discord.Embed(title="Withdraw Ticket", color=GOLD)
+    embed.description = f"Welcome {interaction.user.mention}!\n\nSend your Roblox username and which items to withdraw.\nAn admin will assist you shortly."
+    await channel.send(embed=embed, view=CloseTicketView())
+    await interaction.response.send_message(f"Withdraw ticket created: {channel.mention}", ephemeral=True)
 
 # ─── RUN ──────────────────────────────────────────────────────────────────────
 
