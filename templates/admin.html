@@ -3,1407 +3,824 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SabPot Admin Panel</title>
+<title>SabPot Admin</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+:root{
+  --bg:#0a0a0f;--surface:#111118;--s2:#1a1a24;--border:#2a2a3a;
+  --fire:#ff4d1a;--ice:#1af0ff;--gold:#ffd700;--green:#22c55e;
+  --red:#ef4444;--purple:#8b5cf6;--text:#e8e8f0;--muted:#666680;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(139,92,246,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
 
-  :root {
-    --bg:       #0a0a0f;
-    --surface:  #111118;
-    --surface2: #1a1a24;
-    --border:   #2a2a3a;
-    --fire:     #ff4d1a;
-    --ice:      #1af0ff;
-    --gold:     #ffd700;
-    --green:    #22c55e;
-    --red:      #ef4444;
-    --purple:   #8b5cf6;
-    --text:     #e8e8f0;
-    --muted:    #666680;
-  }
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:220px 1fr;grid-template-rows:56px 1fr;min-height:100vh;position:relative;z-index:1;}
+.topbar{grid-column:1/-1;background:rgba(17,17,24,.97);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 24px;backdrop-filter:blur(12px);}
+.logo{font-size:18px;font-weight:800;color:var(--gold);letter-spacing:-.5px;}.logo span{color:var(--purple);}
+.badge-admin{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;letter-spacing:1px;}
+.topbar-user{margin-left:auto;font-size:13px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+/* SIDEBAR */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:16px 0;display:flex;flex-direction:column;gap:2px;}
+.section-label{padding:10px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);border-left:3px solid transparent;transition:all .15s;}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.04);}
+.nav-item.active{color:var(--text);background:rgba(139,92,246,.12);border-left-color:var(--purple);}
+.nav-item .ic{font-size:15px;width:18px;text-align:center;}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+/* MAIN */
+.main{padding:28px 32px;overflow-y:auto;}
+.page{display:none;}.page.active{display:block;}
+.page-title{font-size:24px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
 
-  /* ── GRID NOISE BACKGROUND ── */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(138,92,246,.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(138,92,246,.04) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px;}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.card-title{font-size:15px;font-weight:700;}
 
-  /* ── LAYOUT ── */
-  .layout {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    grid-template-rows: 56px 1fr;
-    min-height: 100vh;
-    position: relative;
-    z-index: 1;
-  }
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;}
+.stat-label{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);}
+.stat-val{font-size:26px;font-weight:800;margin-top:4px;letter-spacing:-1px;}
 
-  /* ── TOPBAR ── */
-  .topbar {
-    grid-column: 1 / -1;
-    background: rgba(17,17,24,.95);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 0 24px;
-    backdrop-filter: blur(12px);
-  }
-  .topbar-logo {
-    font-size: 18px;
-    font-weight: 800;
-    letter-spacing: -.5px;
-    color: var(--gold);
-  }
-  .topbar-logo span { color: var(--purple); }
-  .topbar-badge {
-    background: var(--red);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 99px;
-    letter-spacing: 1px;
-  }
-  .topbar-user {
-    margin-left: auto;
-    font-size: 13px;
-    color: var(--muted);
-    font-family: 'JetBrains Mono', monospace;
-  }
+/* TABLES */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
+td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+tr:hover td{background:rgba(255,255,255,.02);}
+.ucell{display:flex;align-items:center;gap:10px;}
+.av{width:30px;height:30px;border-radius:50%;background:var(--s2);object-fit:cover;flex-shrink:0;}
+.uname{font-weight:600;font-size:13px;}
+.uid{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
 
-  /* ── SIDEBAR ── */
-  .sidebar {
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    padding: 20px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .sidebar-section {
-    padding: 8px 16px 4px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    color: var(--muted);
-    text-transform: uppercase;
-  }
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 20px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--muted);
-    border-left: 3px solid transparent;
-    transition: all .15s;
-  }
-  .nav-item:hover  { color: var(--text); background: rgba(255,255,255,.04); }
-  .nav-item.active { color: var(--text); background: rgba(139,92,246,.12); border-left-color: var(--purple); }
-  .nav-item .icon  { font-size: 16px; width: 20px; text-align: center; }
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700;}
+.bg-gold{background:rgba(255,215,0,.15);color:var(--gold);}
+.bg-green{background:rgba(34,197,94,.15);color:var(--green);}
+.bg-red{background:rgba(239,68,68,.15);color:var(--red);}
+.bg-purple{background:rgba(139,92,246,.15);color:var(--purple);}
+.bg-fire{background:rgba(255,77,26,.15);color:var(--fire);}
+.bg-ice{background:rgba(26,240,255,.12);color:var(--ice);}
 
-  /* ── MAIN ── */
-  .main {
-    padding: 28px 32px;
-    overflow-y: auto;
-  }
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+.btn:hover{transform:translateY(-1px);}.btn:active{transform:translateY(0);}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.btn-purple{background:var(--purple);color:#fff;}
+.btn-green{background:var(--green);color:#fff;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-gold{background:var(--gold);color:#000;}
+.btn-ghost{background:var(--s2);color:var(--text);border:1px solid var(--border);}
+.btn-fire{background:var(--fire);color:#fff;}
+.btn-ice{background:var(--ice);color:#000;}
+.btn-sm{padding:5px 10px;font-size:11px;}
 
-  /* ── PAGE HEADER ── */
-  .page-header {
-    margin-bottom: 28px;
-  }
-  .page-header h1 {
-    font-size: 26px;
-    font-weight: 800;
-    letter-spacing: -.5px;
-  }
-  .page-header p {
-    font-size: 13px;
-    color: var(--muted);
-    margin-top: 4px;
-  }
+/* FORMS */
+.fg{margin-bottom:14px;}
+label{display:block;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+input,select{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:9px 13px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;transition:border-color .15s;}
+input:focus,select:focus{border-color:var(--purple);}
+select option{background:var(--surface);}
+input[type=range]{padding:0;height:4px;accent-color:var(--purple);}
 
-  /* ── CARDS ── */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px 24px;
-    margin-bottom: 20px;
-  }
-  .card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 18px;
-  }
-  .card-title {
-    font-size: 15px;
-    font-weight: 700;
-  }
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;}
 
-  /* ── TABLES ── */
-  .table-wrap { overflow-x: auto; }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-  }
-  th {
-    text-align: left;
-    padding: 8px 12px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: .8px;
-    text-transform: uppercase;
-    color: var(--muted);
-    border-bottom: 1px solid var(--border);
-  }
-  td {
-    padding: 11px 12px;
-    border-bottom: 1px solid rgba(255,255,255,.04);
-    vertical-align: middle;
-  }
-  tr:hover td { background: rgba(255,255,255,.02); }
-  .user-cell { display: flex; align-items: center; gap: 10px; }
-  .avatar {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    background: var(--surface2);
-    object-fit: cover;
-    flex-shrink: 0;
-  }
-  .username { font-weight: 600; }
-  .user-id  { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+/* ITEM GRID */
+.item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;max-height:340px;overflow-y:auto;padding:2px;}
+.ic{background:var(--s2);border:2px solid var(--border);border-radius:10px;padding:10px 8px;cursor:pointer;text-align:center;position:relative;transition:all .15s;}
+.ic:hover{border-color:var(--purple);background:rgba(139,92,246,.08);}
+.ic.sel{border-color:var(--purple);background:rgba(139,92,246,.18);box-shadow:0 0 0 3px rgba(139,92,246,.25);}
+.ic .ck{position:absolute;top:4px;right:4px;width:16px;height:16px;background:var(--purple);border-radius:50%;display:none;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:800;}
+.ic.sel .ck{display:flex;}
+.ic-emoji{font-size:26px;display:block;margin-bottom:3px;}
+.ic-name{font-size:10px;font-weight:700;line-height:1.3;}
+.ic-val{font-size:11px;color:var(--gold);font-weight:700;margin-top:2px;}
+.ic-mut{font-size:9px;color:var(--muted);}
 
-  /* ── BADGES ── */
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 10px;
-    border-radius: 99px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: .3px;
-  }
-  .badge-gold   { background: rgba(255,215,0,.15);   color: var(--gold); }
-  .badge-green  { background: rgba(34,197,94,.15);   color: var(--green); }
-  .badge-red    { background: rgba(239,68,68,.15);   color: var(--red); }
-  .badge-purple { background: rgba(139,92,246,.15);  color: var(--purple); }
-  .badge-fire   { background: rgba(255,77,26,.15);   color: var(--fire); }
-  .badge-ice    { background: rgba(26,240,255,.15);  color: var(--ice); }
+/* SIDE PICKER */
+.side-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;}
+.side-btn{padding:14px;border-radius:10px;border:2px solid var(--border);cursor:pointer;text-align:center;font-size:14px;font-weight:800;transition:all .15s;background:var(--s2);color:var(--text);}
+.side-btn .si{font-size:28px;display:block;margin-bottom:4px;}
+.side-btn.fire-sel{border-color:var(--fire);background:rgba(255,77,26,.15);color:var(--fire);}
+.side-btn.ice-sel{border-color:var(--ice);background:rgba(26,240,255,.1);color:var(--ice);}
 
-  /* ── BUTTONS ── */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: none;
-    font-family: 'Syne', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all .15s;
-  }
-  .btn:hover   { transform: translateY(-1px); }
-  .btn:active  { transform: translateY(0); }
-  .btn-primary { background: var(--purple);      color: #fff; }
-  .btn-green   { background: var(--green);       color: #fff; }
-  .btn-red     { background: var(--red);         color: #fff; }
-  .btn-gold    { background: var(--gold);        color: #000; }
-  .btn-ghost   { background: var(--surface2);    color: var(--text); border: 1px solid var(--border); }
-  .btn-fire    { background: var(--fire);        color: #fff; }
-  .btn-ice     { background: var(--ice);         color: #000; }
-  .btn-sm      { padding: 5px 10px; font-size: 11px; }
-  .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+/* SELECTED SUMMARY */
+.sel-sum{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;margin:10px 0;font-size:13px;}
+.sel-total{font-size:22px;font-weight:800;color:var(--gold);}
 
-  /* ── INPUTS ── */
-  .form-group { margin-bottom: 16px; }
-  label {
-    display: block;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: .5px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 6px;
-  }
-  input, select {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    font-size: 14px;
-    outline: none;
-    transition: border-color .15s;
-  }
-  input:focus, select:focus { border-color: var(--purple); }
-  select option { background: var(--surface); }
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+.overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:30px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;position:relative;}
+.modal-x{position:absolute;top:14px;right:14px;background:var(--s2);border:none;color:var(--muted);font-size:16px;width:30px;height:30px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-x:hover{color:var(--text);}
+.modal-title{font-size:18px;font-weight:800;margin-bottom:18px;}
 
-  /* ── GRID LAYOUTS ── */
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-  @media (max-width: 900px) {
-    .grid-2, .grid-3 { grid-template-columns: 1fr; }
-    .layout { grid-template-columns: 1fr; }
-    .sidebar { display: none; }
-  }
+/* COINFLIP ANIM */
+.cf-wrap{text-align:center;padding:30px 20px;}
+.cf-coin{font-size:72px;display:inline-block;animation:flip 1.5s ease-in-out forwards;}
+@keyframes flip{0%{transform:rotateY(0) scale(1)}30%{transform:rotateY(540deg) scale(1.2)}60%{transform:rotateY(1080deg) scale(1.1)}100%{transform:rotateY(1440deg) scale(1)}}
 
-  /* ── PAGES ── */
-  .page { display: none; }
-  .page.active { display: block; }
+/* TOAST */
+.toasts{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--green);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:600;min-width:240px;animation:tIn .2s ease,tOut .2s ease 2.8s forwards;box-shadow:0 4px 24px rgba(0,0,0,.4);}
+.toast.err{border-left-color:var(--red);}
+@keyframes tIn{from{transform:translateX(100%);opacity:0}}
+@keyframes tOut{to{transform:translateX(120%);opacity:0}}
 
-  /* ── STATS ROW ── */
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px 20px;
-  }
-  .stat-label { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
-  .stat-value { font-size: 26px; font-weight: 800; margin-top: 4px; letter-spacing: -1px; }
-  .stat-sub   { font-size: 12px; color: var(--muted); margin-top: 2px; }
+/* MISC */
+.search-wrap{position:relative;margin-bottom:14px;}.search-wrap input{padding-left:34px;}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;}
+.loading{display:flex;align-items:center;justify-content:center;padding:36px;color:var(--muted);gap:10px;font-size:13px;}
+.spin{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:s .7s linear infinite;}
+@keyframes s{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:36px;color:var(--muted);font-size:13px;}
+::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
 
-  /* ── ITEM GRID (for coinflip item picker) ── */
-  .item-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 10px;
-    max-height: 340px;
-    overflow-y: auto;
-    padding: 4px;
-  }
-  .item-card {
-    background: var(--surface2);
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    padding: 10px;
-    cursor: pointer;
-    transition: all .15s;
-    text-align: center;
-    position: relative;
-  }
-  .item-card:hover   { border-color: var(--purple); background: rgba(139,92,246,.08); }
-  .item-card.selected {
-    border-color: var(--purple);
-    background: rgba(139,92,246,.18);
-    box-shadow: 0 0 0 3px rgba(139,92,246,.3);
-  }
-  .item-card .item-emoji { font-size: 28px; display: block; margin-bottom: 4px; }
-  .item-card .item-name  { font-size: 11px; font-weight: 700; line-height: 1.3; color: var(--text); }
-  .item-card .item-val   { font-size: 12px; color: var(--gold); font-weight: 700; margin-top: 2px; }
-  .item-card .item-mut   { font-size: 10px; color: var(--muted); }
-  .item-card .check-mark {
-    position: absolute; top: 5px; right: 5px;
-    width: 18px; height: 18px;
-    background: var(--purple);
-    border-radius: 50%;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    color: #fff;
-    font-weight: 800;
-  }
-  .item-card.selected .check-mark { display: flex; }
-
-  /* ── COINFLIP MODAL ── */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.85);
-    z-index: 1000;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(6px);
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 32px;
-    width: 100%;
-    max-width: 560px;
-    max-height: 90vh;
-    overflow-y: auto;
-    position: relative;
-  }
-  .modal-close {
-    position: absolute;
-    top: 16px; right: 16px;
-    background: var(--surface2);
-    border: none;
-    color: var(--muted);
-    font-size: 18px;
-    width: 32px; height: 32px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: color .15s;
-  }
-  .modal-close:hover { color: var(--text); }
-  .modal-title { font-size: 20px; font-weight: 800; margin-bottom: 20px; }
-
-  /* ── COINFLIP ANIMATION ── */
-  .cf-anim-wrap {
-    text-align: center;
-    padding: 40px 20px;
-  }
-  .cf-coin {
-    font-size: 80px;
-    display: inline-block;
-    animation: coinFlip 1.5s ease-in-out forwards;
-    transform-style: preserve-3d;
-  }
-  @keyframes coinFlip {
-    0%   { transform: rotateY(0deg) scale(1); }
-    30%  { transform: rotateY(540deg) scale(1.2); }
-    60%  { transform: rotateY(1080deg) scale(1.1); }
-    100% { transform: rotateY(1440deg) scale(1); }
-  }
-  .cf-result-text {
-    font-size: 32px;
-    font-weight: 800;
-    margin-top: 20px;
-    letter-spacing: -1px;
-    opacity: 0;
-    animation: fadeIn .5s ease 1.6s forwards;
-  }
-  .cf-result-text.win  { color: var(--green); }
-  .cf-result-text.lose { color: var(--red); }
-  @keyframes fadeIn { to { opacity: 1; } }
-
-  /* ── SIDE PICKER ── */
-  .side-picker {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin: 16px 0;
-  }
-  .side-btn {
-    padding: 16px;
-    border-radius: 10px;
-    border: 2px solid var(--border);
-    cursor: pointer;
-    text-align: center;
-    font-size: 15px;
-    font-weight: 800;
-    transition: all .15s;
-    background: var(--surface2);
-    color: var(--text);
-  }
-  .side-btn .side-icon { font-size: 32px; display: block; margin-bottom: 6px; }
-  .side-btn.fire-btn:hover, .side-btn.fire-btn.selected {
-    border-color: var(--fire);
-    background: rgba(255,77,26,.15);
-    color: var(--fire);
-    box-shadow: 0 0 20px rgba(255,77,26,.2);
-  }
-  .side-btn.ice-btn:hover, .side-btn.ice-btn.selected {
-    border-color: var(--ice);
-    background: rgba(26,240,255,.12);
-    color: var(--ice);
-    box-shadow: 0 0 20px rgba(26,240,255,.2);
-  }
-
-  /* ── SELECTED ITEMS SUMMARY ── */
-  .selected-summary {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
-    margin: 12px 0;
-    font-size: 13px;
-  }
-  .selected-summary .total-val {
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--gold);
-  }
-
-  /* ── TOAST ── */
-  .toast-container {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .toast {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--green);
-    border-radius: 10px;
-    padding: 12px 18px;
-    font-size: 14px;
-    font-weight: 600;
-    min-width: 240px;
-    animation: slideIn .2s ease, slideOut .2s ease 2.8s forwards;
-    box-shadow: 0 4px 24px rgba(0,0,0,.4);
-  }
-  .toast.error { border-left-color: var(--red); }
-  @keyframes slideIn  { from { transform: translateX(100%); opacity: 0; } }
-  @keyframes slideOut { to   { transform: translateX(120%); opacity: 0; } }
-
-  /* ── SEARCH ── */
-  .search-wrap {
-    position: relative;
-    margin-bottom: 16px;
-  }
-  .search-wrap input {
-    padding-left: 36px;
-  }
-  .search-icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
-    font-size: 14px;
-  }
-
-  /* ── LOADING ── */
-  .loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    color: var(--muted);
-    font-size: 14px;
-    gap: 10px;
-  }
-  .spinner {
-    width: 18px; height: 18px;
-    border: 2px solid var(--border);
-    border-top-color: var(--purple);
-    border-radius: 50%;
-    animation: spin .7s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ── SCROLLBAR ── */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-
-  /* ── MUTATION COLORS ── */
-  .mut-Base      { color: var(--muted); }
-  .mut-Gold      { color: #ffd700; }
-  .mut-Diamond   { color: #a8d8f8; }
-  .mut-Bloodrot  { color: #c0392b; }
-  .mut-Lava      { color: #ff4d1a; }
-  .mut-Candy     { color: #ff69b4; }
-  .mut-Galaxy    { color: #8b5cf6; }
-  .mut-Yingyang  { color: #e8e8e8; }
-  .mut-Radioactive { color: #39ff14; }
-  .mut-Cursed    { color: #7f00ff; }
-  .mut-Rainbow   { background: linear-gradient(90deg,#ff0000,#ff7700,#ffff00,#00ff00,#0000ff,#ff00ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-  .mut-Divine    { color: #ffe4b5; text-shadow: 0 0 8px #ffe4b5; }
-
-  .tier-low  { color: #94a3b8; }
-  .tier-mid  { color: #fb923c; }
-  .tier-rare { color: #ffd700; }
-
-  .empty-state {
-    text-align: center;
-    padding: 40px;
-    color: var(--muted);
-    font-size: 14px;
-  }
+/* MUT COLORS */
+.m-Base{color:var(--muted)}.m-Gold{color:#ffd700}.m-Diamond{color:#a8d8f8}.m-Bloodrot{color:#c0392b}
+.m-Lava{color:#ff4d1a}.m-Candy{color:#ff69b4}.m-Galaxy{color:#8b5cf6}.m-Yingyang{color:#e8e8e8}
+.m-Radioactive{color:#39ff14}.m-Cursed{color:#7f00ff}
+.m-Rainbow{background:linear-gradient(90deg,#f00,#f70,#ff0,#0f0,#00f,#f0f);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.m-Divine{color:#ffe4b5;text-shadow:0 0 8px #ffe4b5}
 </style>
 </head>
 <body>
-
 <div class="layout">
 
-  <!-- TOPBAR -->
-  <div class="topbar">
-    <div class="topbar-logo">Sab<span>Pot</span></div>
-    <div class="topbar-badge">ADMIN</div>
-    <div class="topbar-user" id="adminUsername">Loading…</div>
-  </div>
-
-  <!-- SIDEBAR -->
-  <nav class="sidebar">
-    <div class="sidebar-section">Overview</div>
-    <div class="nav-item active" onclick="showPage('dashboard')">
-      <span class="icon">📊</span> Dashboard
-    </div>
-    <div class="sidebar-section">Users</div>
-    <div class="nav-item" onclick="showPage('users')">
-      <span class="icon">👥</span> All Users
-    </div>
-    <div class="sidebar-section">Items</div>
-    <div class="nav-item" onclick="showPage('additem')">
-      <span class="icon">➕</span> Add Item
-    </div>
-    <div class="nav-item" onclick="showPage('botstock')">
-      <span class="icon">🤖</span> Bot Stock
-    </div>
-    <div class="sidebar-section">Games</div>
-    <div class="nav-item" onclick="showPage('coinflip')">
-      <span class="icon">🪙</span> Create Coinflip
-    </div>
-    <div class="sidebar-section">Economy</div>
-    <div class="nav-item" onclick="showPage('sccoins')">
-      <span class="icon">💰</span> SC Coins
-    </div>
-  </nav>
-
-  <!-- MAIN CONTENT -->
-  <main class="main">
-
-    <!-- DASHBOARD -->
-    <div id="page-dashboard" class="page active">
-      <div class="page-header">
-        <h1>Dashboard</h1>
-        <p>Overview of SabPot platform activity</p>
-      </div>
-      <div class="stats-row" id="dashStats">
-        <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value" id="stat-users">—</div></div>
-        <div class="stat-card"><div class="stat-label">Bot Stock</div><div class="stat-value" id="stat-stock">—</div></div>
-        <div class="stat-card"><div class="stat-label">Open Coinflips</div><div class="stat-value" id="stat-flips">—</div></div>
-        <div class="stat-card"><div class="stat-label">Your Inventory</div><div class="stat-value" id="stat-inv">—</div></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title">Live Coinflips</div><button class="btn btn-ghost btn-sm" onclick="loadDashboard()">↺ Refresh</button></div>
-        <div id="liveFlips"><div class="loading"><div class="spinner"></div>Loading…</div></div>
-      </div>
-    </div>
-
-    <!-- USERS -->
-    <div id="page-users" class="page">
-      <div class="page-header">
-        <h1>All Users</h1>
-        <p>Browse users, view inventories, and manage accounts</p>
-      </div>
-      <div class="card">
-        <div class="search-wrap">
-          <span class="search-icon">🔍</span>
-          <input type="text" placeholder="Search by username…" oninput="filterUsers(this.value)">
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr>
-              <th>User</th><th>Net Worth</th><th>SC Coins</th><th>Games</th><th>Win%</th><th>Actions</th>
-            </tr></thead>
-            <tbody id="usersTable"><tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ADD ITEM -->
-    <div id="page-additem" class="page">
-      <div class="page-header">
-        <h1>Add Item</h1>
-        <p>Give a brainrot item directly to any user's inventory</p>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title" style="margin-bottom:16px">1. Select User</div>
-          <div class="form-group">
-            <label>User</label>
-            <select id="additem-user" onchange="loadUserInventory(this.value)">
-              <option value="">— Select a user —</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Brainrot</label>
-            <select id="additem-brainrot" onchange="updateItemPreview()">
-              <option value="">— Select brainrot —</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Mutation</label>
-            <select id="additem-mutation" onchange="updateItemPreview()">
-              <option value="">— Select mutation —</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Traits (0–10)</label>
-            <input type="range" id="additem-traits" min="0" max="10" value="0" style="padding:0;height:4px;accent-color:var(--purple)" oninput="document.getElementById('traitVal').textContent=this.value;updateItemPreview()">
-            <div style="font-size:13px;margin-top:4px;color:var(--muted)">Traits: <strong id="traitVal">0</strong></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title" style="margin-bottom:16px">2. Preview & Confirm</div>
-          <div id="item-preview" style="text-align:center;padding:20px;color:var(--muted)">
-            <div style="font-size:48px">❓</div>
-            <div style="margin-top:8px;font-size:14px">Select a brainrot and mutation to preview</div>
-          </div>
-          <button class="btn btn-green" style="width:100%;margin-top:16px;justify-content:center" onclick="submitAddItem()">
-            ✅ Add Item to Inventory
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- BOT STOCK -->
-    <div id="page-botstock" class="page">
-      <div class="page-header">
-        <h1>Bot Stock</h1>
-        <p>Items available for upgrader and call-bot coinflips</p>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Current Stock</div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-primary btn-sm" onclick="showAddBotStock()">+ Add Item</button>
-            <button class="btn btn-ghost btn-sm" onclick="loadBotStock()">↺ Refresh</button>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Item</th><th>Mutation</th><th>Traits</th><th>Value</th><th>Stock ID</th><th>Action</th></tr></thead>
-            <tbody id="stockTable"><tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- COINFLIP CREATOR -->
-    <div id="page-coinflip" class="page">
-      <div class="page-header">
-        <h1>Create Coinflip</h1>
-        <p>Select items from any user, pick a side, and fire a coinflip game</p>
-      </div>
-
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title" style="margin-bottom:14px">1. Select User</div>
-          <div class="form-group">
-            <select id="cf-user" onchange="loadCfInventory(this.value)">
-              <option value="">— Select a user —</option>
-            </select>
-          </div>
-
-          <div class="card-title" style="margin-bottom:10px;margin-top:4px">2. Pick Items <span style="color:var(--muted);font-weight:400;font-size:12px">(no limit)</span></div>
-          <div class="search-wrap" style="margin-bottom:10px">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="cf-item-search" placeholder="Search items…" oninput="filterCfItems(this.value)">
-          </div>
-          <div id="cf-item-grid" class="item-grid">
-            <div class="empty-state">Select a user to see their items</div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title" style="margin-bottom:14px">3. Configure</div>
-
-          <div id="cf-selected-summary" class="selected-summary" style="display:none">
-            <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Selected Items</div>
-            <div id="cf-selected-list" style="font-size:13px;margin-bottom:8px"></div>
-            <div style="display:flex;align-items:center;justify-content:space-between">
-              <span style="font-size:12px;color:var(--muted)">Total Value</span>
-              <div class="total-val" id="cf-total-val">0</div>
-            </div>
-          </div>
-
-          <label style="margin-top:8px;display:block">4. Pick Side</label>
-          <div class="side-picker">
-            <div class="side-btn fire-btn" id="side-fire" onclick="selectSide('fire')">
-              <span class="side-icon">🔥</span>
-              FIRE
-            </div>
-            <div class="side-btn ice-btn" id="side-ice" onclick="selectSide('ice')">
-              <span class="side-icon">❄️</span>
-              ICE
-            </div>
-          </div>
-
-          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--muted)">
-            <strong style="color:var(--text)">Flip value:</strong>
-            <span id="cf-flip-value-display" style="color:var(--gold);font-weight:800;font-size:16px;margin-left:8px">0.00</span>
-          </div>
-
-          <button class="btn btn-primary" style="width:100%;justify-content:center;font-size:15px;padding:14px" id="cf-create-btn" onclick="createCoinflip()" disabled>
-            🪙 Create Coinflip
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- SC COINS -->
-    <div id="page-sccoins" class="page">
-      <div class="page-header">
-        <h1>SC Coins Management</h1>
-        <p>Add, remove, or set SabCoin balances for users</p>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title" style="margin-bottom:16px">Manage Coins</div>
-          <div class="form-group">
-            <label>User</label>
-            <select id="sc-user">
-              <option value="">— Select a user —</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Amount</label>
-            <input type="number" id="sc-amount" placeholder="e.g. 100" min="0" step="0.01">
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-            <button class="btn btn-green" onclick="scAction('add')">+ Add</button>
-            <button class="btn btn-red"   onclick="scAction('remove')">− Remove</button>
-            <button class="btn btn-gold"  onclick="scAction('set')">= Set</button>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title" style="margin-bottom:16px">User Balances</div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>User</th><th>SC Balance</th></tr></thead>
-              <tbody id="scTable"><tr><td colspan="2"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </main>
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">Sab<span>Pot</span></div>
+  <div class="badge-admin">ADMIN</div>
+  <div class="topbar-user" id="topUser">Loading…</div>
 </div>
 
-<!-- ── MODALS ── -->
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="section-label">Overview</div>
+  <div class="nav-item active" onclick="go('dashboard')"><span class="ic">📊</span>Dashboard</div>
+  <div class="section-label">Users</div>
+  <div class="nav-item" onclick="go('users')"><span class="ic">👥</span>All Users</div>
+  <div class="section-label">Items</div>
+  <div class="nav-item" onclick="go('additem')"><span class="ic">➕</span>Add Item</div>
+  <div class="nav-item" onclick="go('botstock')"><span class="ic">🤖</span>Bot Stock</div>
+  <div class="section-label">Games</div>
+  <div class="nav-item" onclick="go('coinflip')"><span class="ic">🪙</span>Create Coinflip</div>
+  <div class="section-label">Economy</div>
+  <div class="nav-item" onclick="go('sccoins')"><span class="ic">💰</span>SC Coins</div>
+</nav>
 
-<!-- Add Bot Stock Modal -->
-<div class="modal-overlay" id="modal-addstock">
+<!-- MAIN -->
+<main class="main">
+
+<!-- DASHBOARD -->
+<div id="pg-dashboard" class="page active">
+  <div class="page-title">Dashboard</div>
+  <div class="page-sub">Platform overview</div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-val" id="st-users">—</div></div>
+    <div class="stat-card"><div class="stat-label">Bot Stock</div><div class="stat-val" id="st-stock">—</div></div>
+    <div class="stat-card"><div class="stat-label">Open Coinflips</div><div class="stat-val" id="st-flips">—</div></div>
+    <div class="stat-card"><div class="stat-label">Your Balance</div><div class="stat-val" id="st-bal">—</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">Live Coinflips</div><button class="btn btn-ghost btn-sm" onclick="loadDash()">↺ Refresh</button></div>
+    <div id="liveFlips"><div class="loading"><div class="spin"></div>Loading…</div></div>
+  </div>
+</div>
+
+<!-- USERS -->
+<div id="pg-users" class="page">
+  <div class="page-title">All Users</div>
+  <div class="page-sub">Browse users, view inventories, manage balances</div>
+  <div class="card">
+    <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" placeholder="Search username or ID…" oninput="filterUsers(this.value)"></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>User</th><th>Net Worth</th><th>SC Coins</th><th>Games</th><th>Win%</th><th>Actions</th></tr></thead>
+      <tbody id="usersTbl"><tr><td colspan="6"><div class="loading"><div class="spin"></div>Loading…</div></td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ADD ITEM -->
+<div id="pg-additem" class="page">
+  <div class="page-title">Add Item</div>
+  <div class="page-sub">Give a brainrot item to any user's inventory</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">Configure Item</div>
+      <div class="fg"><label>User</label><select id="ai-user"><option value="">— Select user —</option></select></div>
+      <div class="fg"><label>Brainrot</label><select id="ai-br" onchange="previewItem()"><option value="">— Select brainrot —</option></select></div>
+      <div class="fg"><label>Mutation</label><select id="ai-mut" onchange="previewItem()"><option value="">— Select mutation —</option></select></div>
+      <div class="fg">
+        <label>Traits: <strong id="ai-tval">0</strong></label>
+        <input type="range" id="ai-traits" min="0" max="10" value="0" oninput="document.getElementById('ai-tval').textContent=this.value;previewItem()">
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">Preview</div>
+      <div id="ai-preview" style="text-align:center;padding:20px;color:var(--muted)">
+        <div style="font-size:44px">❓</div>
+        <div style="margin-top:8px;font-size:13px">Select brainrot and mutation</div>
+      </div>
+      <button class="btn btn-green" style="width:100%;justify-content:center;margin-top:16px" onclick="doAddItem()">✅ Add to Inventory</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOT STOCK -->
+<div id="pg-botstock" class="page">
+  <div class="page-title">Bot Stock</div>
+  <div class="page-sub">Items used for upgrader and call-bot coinflips</div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Current Stock</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-purple btn-sm" onclick="openModal('m-addstock')">+ Add Item</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadStock()">↺ Refresh</button>
+      </div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Item</th><th>Mutation</th><th>Traits</th><th>Value</th><th>ID</th><th>Action</th></tr></thead>
+      <tbody id="stockTbl"><tr><td colspan="6"><div class="loading"><div class="spin"></div>Loading…</div></td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- COINFLIP -->
+<div id="pg-coinflip" class="page">
+  <div class="page-title">Create Coinflip</div>
+  <div class="page-sub">Select items from a user, pick a side, open a game</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">1. Select User</div>
+      <div class="fg"><select id="cf-user" onchange="loadCfInv(this.value)"><option value="">— Select user —</option></select></div>
+      <div class="card-title" style="margin-bottom:8px;margin-top:4px">2. Pick Items <span style="color:var(--muted);font-size:11px;font-weight:400">(select as many as you want)</span></div>
+      <div class="search-wrap" style="margin-bottom:8px"><span class="search-icon">🔍</span><input type="text" id="cf-search" placeholder="Search items…" oninput="filterCf(this.value)"></div>
+      <div id="cf-grid" class="item-grid"><div class="empty">Select a user first</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">3. Configure</div>
+      <div id="cf-summary" class="sel-sum" style="display:none">
+        <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Selected</div>
+        <div id="cf-items-list" style="font-size:12px;margin-bottom:8px"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:11px;color:var(--muted)">Total Value</span>
+          <div class="sel-total" id="cf-total">0</div>
+        </div>
+      </div>
+      <label style="margin-top:8px;display:block">4. Pick Side</label>
+      <div class="side-pick">
+        <div class="side-btn" id="sb-fire" onclick="pickSide('fire')"><span class="si">🔥</span>FIRE</div>
+        <div class="side-btn" id="sb-ice"  onclick="pickSide('ice')"><span class="si">❄️</span>ICE</div>
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px">
+        <div style="font-size:11px;color:var(--muted)">Flip Value</div>
+        <div style="font-size:24px;font-weight:800;color:var(--gold)" id="cf-val-disp">0</div>
+      </div>
+      <button class="btn btn-purple" id="cf-btn" style="width:100%;justify-content:center;font-size:15px;padding:14px" onclick="doCreateCf()" disabled>🪙 Create Coinflip</button>
+    </div>
+  </div>
+</div>
+
+<!-- SC COINS -->
+<div id="pg-sccoins" class="page">
+  <div class="page-title">SC Coins</div>
+  <div class="page-sub">Add, remove, or set SabCoin balances</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">Manage Balance</div>
+      <div class="fg"><label>User</label><select id="sc-user"><option value="">— Select user —</option></select></div>
+      <div class="fg"><label>Amount (SC)</label><input type="number" id="sc-amount" placeholder="e.g. 100" min="0" step="0.01"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <button class="btn btn-green" onclick="doSC('add')">+ Add</button>
+        <button class="btn btn-red"   onclick="doSC('remove')">− Remove</button>
+        <button class="btn btn-gold"  onclick="doSC('set')">= Set</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">All Balances</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>User</th><th>SC Balance</th></tr></thead>
+        <tbody id="scTbl"><tr><td colspan="2"><div class="loading"><div class="spin"></div>Loading…</div></td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- ADD BOT STOCK MODAL -->
+<div class="overlay" id="m-addstock">
   <div class="modal">
-    <button class="modal-close" onclick="closeModal('modal-addstock')">✕</button>
-    <div class="modal-title">Add Item to Bot Stock</div>
-    <div class="form-group">
-      <label>Brainrot</label>
-      <select id="stock-brainrot" onchange="updateStockPreview()">
-        <option value="">— Select brainrot —</option>
-      </select>
+    <button class="modal-x" onclick="closeModal('m-addstock')">✕</button>
+    <div class="modal-title">Add to Bot Stock</div>
+    <div class="fg"><label>Brainrot</label><select id="ms-br" onchange="previewStock()"><option value="">— Select brainrot —</option></select></div>
+    <div class="fg"><label>Mutation</label><select id="ms-mut" onchange="previewStock()"><option value="">— Select mutation —</option></select></div>
+    <div class="fg">
+      <label>Traits: <strong id="ms-tval">0</strong></label>
+      <input type="range" id="ms-traits" min="0" max="10" value="0" oninput="document.getElementById('ms-tval').textContent=this.value;previewStock()">
     </div>
-    <div class="form-group">
-      <label>Mutation</label>
-      <select id="stock-mutation" onchange="updateStockPreview()">
-        <option value="">— Select mutation —</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Traits (0–10)</label>
-      <input type="range" id="stock-traits" min="0" max="10" value="0" style="padding:0;height:4px;accent-color:var(--purple)" oninput="document.getElementById('stockTraitVal').textContent=this.value;updateStockPreview()">
-      <div style="font-size:13px;margin-top:4px;color:var(--muted)">Traits: <strong id="stockTraitVal">0</strong></div>
-    </div>
-    <div id="stock-preview" style="background:var(--surface2);border-radius:8px;padding:12px;margin-bottom:16px;text-align:center;color:var(--muted);font-size:13px">Select brainrot and mutation to preview</div>
-    <button class="btn btn-gold" style="width:100%;justify-content:center" onclick="submitAddBotStock()">✅ Add to Bot Stock</button>
+    <div id="ms-preview" style="background:var(--s2);border-radius:8px;padding:12px;margin-bottom:14px;text-align:center;color:var(--muted);font-size:13px">Select brainrot and mutation to preview</div>
+    <button class="btn btn-gold" style="width:100%;justify-content:center" onclick="doAddStock()">✅ Add to Bot Stock</button>
   </div>
 </div>
 
-<!-- Coinflip Animation Modal -->
-<div class="modal-overlay" id="modal-cf-anim">
-  <div class="modal" style="max-width:400px;text-align:center">
+<!-- COINFLIP ANIM MODAL -->
+<div class="overlay" id="m-cf-anim">
+  <div class="modal" style="max-width:380px;text-align:center">
     <div class="modal-title">🪙 Coinflip Created!</div>
-    <div class="cf-anim-wrap">
-      <div class="cf-coin" id="cf-coin-emoji">🪙</div>
-      <div style="margin-top:16px;font-size:14px;color:var(--muted)">Game is now <strong style="color:var(--green)">OPEN</strong></div>
-      <div style="margin-top:8px">
-        <div style="font-size:12px;color:var(--muted)">Flip Value</div>
-        <div style="font-size:28px;font-weight:800;color:var(--gold)" id="cf-anim-value">—</div>
-      </div>
-      <div style="margin-top:10px">
-        <div style="font-size:12px;color:var(--muted)">Side Chosen</div>
-        <div style="font-size:20px;font-weight:800" id="cf-anim-side">—</div>
-      </div>
-      <div style="margin-top:10px">
-        <div style="font-size:12px;color:var(--muted)">Game ID</div>
-        <div style="font-size:14px;font-family:'JetBrains Mono',monospace;color:var(--purple)" id="cf-anim-id">—</div>
-      </div>
+    <div class="cf-wrap">
+      <div class="cf-coin" id="cf-coin">🪙</div>
+      <div style="margin-top:14px;font-size:13px;color:var(--muted)">Game is now <strong style="color:var(--green)">OPEN</strong></div>
+      <div style="margin-top:10px"><div style="font-size:11px;color:var(--muted)">Flip Value</div><div style="font-size:26px;font-weight:800;color:var(--gold)" id="cf-anim-val">—</div></div>
+      <div style="margin-top:8px"><div style="font-size:11px;color:var(--muted)">Side</div><div style="font-size:18px;font-weight:800" id="cf-anim-side">—</div></div>
+      <div style="margin-top:8px"><div style="font-size:11px;color:var(--muted)">Game ID</div><div style="font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--purple)" id="cf-anim-id">—</div></div>
     </div>
-    <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" onclick="closeModal('modal-cf-anim')">Close</button>
+    <button class="btn btn-purple" style="width:100%;justify-content:center;margin-top:6px" onclick="closeModal('m-cf-anim')">Close</button>
   </div>
 </div>
 
-<!-- User Inventory Modal -->
-<div class="modal-overlay" id="modal-user-inv">
-  <div class="modal" style="max-width:680px">
-    <button class="modal-close" onclick="closeModal('modal-user-inv')">✕</button>
-    <div class="modal-title" id="user-inv-title">Inventory</div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Item</th><th>Mutation</th><th>Traits</th><th>Value</th><th>Status</th></tr></thead>
-        <tbody id="user-inv-table"></tbody>
-      </table>
-    </div>
+<!-- USER INV MODAL -->
+<div class="overlay" id="m-inv">
+  <div class="modal" style="max-width:660px">
+    <button class="modal-x" onclick="closeModal('m-inv')">✕</button>
+    <div class="modal-title" id="inv-title">Inventory</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Item</th><th>Mutation</th><th>Traits</th><th>Value</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody id="inv-tbl"></tbody>
+    </table></div>
   </div>
 </div>
 
-<!-- Toast container -->
-<div class="toast-container" id="toasts"></div>
+<div class="toasts" id="toasts"></div>
 
 <script>
-// ── STATE ────────────────────────────────────────────────────────────────────
-let _users = [], _brainrots = [], _mutations = [], _botStock = [];
-let _cfItems = [], _cfSelected = new Set(), _cfSide = null, _cfUser = null;
-let _allCfItemsData = [];
+// ── STATE
+let _U=[],_B=[],_M=[],_cfSel=new Set(),_cfSide=null,_cfUser=null,_cfData=[];
 
-// ── HELPERS ──────────────────────────────────────────────────────────────────
-
-function fmt(v) {
-  v = parseFloat(v || 0);
-  if (v >= 1000) return (v/1000).toFixed(1) + 'k';
-  if (v % 1 === 0) return String(Math.round(v));
-  return v.toFixed(1);
-}
-
-function toast(msg, type='ok') {
-  const el = document.createElement('div');
-  el.className = 'toast' + (type === 'err' ? ' error' : '');
-  el.textContent = msg;
-  document.getElementById('toasts').appendChild(el);
-  setTimeout(() => el.remove(), 3200);
-}
-
-async function api(path, method='GET', body=null) {
-  const opts = { method, headers: {'Content-Type':'application/json'}, credentials:'include' };
-  if (body) opts.body = JSON.stringify(body);
-  const res = await fetch(path, opts);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({detail: 'Unknown error'}));
-    throw new Error(err.detail || 'Request failed');
+// ── API — shows REAL error messages, never "Unknown error"
+async function api(path,method='GET',body=null){
+  const opts={method,headers:{'Content-Type':'application/json'},credentials:'include'};
+  if(body) opts.body=JSON.stringify(body);
+  let res;
+  try{ res=await fetch(path,opts); }
+  catch(e){ throw new Error('Network error: '+e.message); }
+  if(!res.ok){
+    let msg='HTTP '+res.status;
+    try{
+      const ct=res.headers.get('content-type')||'';
+      if(ct.includes('json')){ const j=await res.json(); msg=j.detail||j.message||JSON.stringify(j); }
+      else{ const t=await res.text(); msg=t.slice(0,200)||msg; }
+    }catch(_){}
+    throw new Error(msg);
   }
   return res.json();
 }
 
-function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + name).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => {
-    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes(name)) n.classList.add('active');
-  });
-  if (name === 'dashboard') loadDashboard();
-  if (name === 'users') loadUsers();
-  if (name === 'additem') loadAddItem();
-  if (name === 'botstock') loadBotStock();
-  if (name === 'coinflip') loadCoinflipPage();
-  if (name === 'sccoins') loadScCoins();
+// ── HELPERS
+function fmt(v){v=parseFloat(v||0);if(v>=1000)return(v/1000).toFixed(1)+'k';if(v%1===0)return String(Math.round(v));return v.toFixed(1);}
+function mc(m){return 'm-'+(m||'Base').replace(/\s+/g,'');}
+function dfAv(){return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30'%3E%3Crect width='30' height='30' rx='15' fill='%23333'/%3E%3C/svg%3E";}
+
+function toast(msg,type='ok'){
+  const el=document.createElement('div');
+  el.className='toast'+(type==='err'?' err':'');
+  el.textContent=msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>el.remove(),3200);
 }
 
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
 
-function mutClass(m) { return 'mut-' + (m||'Base').replace(/\s+/g,''); }
-function tierClass(t) { return 'tier-' + (t||'low'); }
+function go(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('pg-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes(name)) n.classList.add('active');
+  });
+  ({dashboard:loadDash,users:loadUsers,additem:loadAddItem,botstock:loadStock,coinflip:loadCfPage,sccoins:loadSC})[name]?.();
+}
 
-// ── INIT ─────────────────────────────────────────────────────────────────────
+// ── INIT
+async function init(){
+  // First verify we're actually logged in and admin
+  let me;
+  try{
+    me=await api('/api/me');
+  }catch(e){
+    document.getElementById('topUser').textContent='Not logged in';
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#ef4444;font-size:18px">Not logged in — <a href="/" style="color:#8b5cf6;margin-left:8px">Go back</a></div>';
+    return;
+  }
 
-async function init() {
-  try {
-    const me = await api('/api/me');
-    if (!me.logged_in) { window.location.href = '/'; return; }
-    document.getElementById('adminUsername').textContent = me.username;
+  if(!me.logged_in){
+    window.location.href='/';
+    return;
+  }
+  if(!me.is_admin){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#ef4444;font-size:18px">Access denied — admin only</div>';
+    return;
+  }
 
-    const [brainrots, mutations] = await Promise.all([
-      api('/api/admin/brainrots'),
-      api('/api/admin/mutations'),
+  document.getElementById('topUser').textContent=me.username;
+
+  // Load brainrots + mutations — these power the dropdowns
+  // Do NOT block the whole page if they fail
+  try{
+    const [b,m]=await Promise.all([api('/api/admin/brainrots'),api('/api/admin/mutations')]);
+    _B=b; _M=m;
+    fillBrainrots(); fillMutations();
+  }catch(e){
+    toast('Could not load item catalog: '+e.message,'err');
+  }
+
+  // Load dashboard last (non-blocking)
+  loadDash();
+}
+
+// ── POPULATE SELECTS
+function fillBrainrots(){
+  ['ai-br','ms-br'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.innerHTML='<option value="">— Select brainrot —</option>';
+    _B.forEach(b=>el.innerHTML+=`<option value="${b.id}">${b.emoji} ${b.name} (${fmt(b.base_value)})</option>`);
+  });
+}
+function fillMutations(){
+  ['ai-mut','ms-mut'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.innerHTML='<option value="">— Select mutation —</option>';
+    _M.forEach(m=>el.innerHTML+=`<option value="${m.id}">${m.name} (${m.multiplier}x)</option>`);
+  });
+}
+function fillUserSelects(){
+  ['ai-user','cf-user','sc-user'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    const cur=el.value;
+    el.innerHTML='<option value="">— Select user —</option>';
+    _U.forEach(u=>el.innerHTML+=`<option value="${u.id}" ${u.id==cur?'selected':''}>${u.username}</option>`);
+  });
+}
+
+// ── VALUE CALC
+function calcVal(bId,mId,traits){
+  const b=_B.find(x=>x.id==bId), m=_M.find(x=>x.id==mId);
+  if(!b||!m) return 0;
+  return Math.round(parseFloat(b.base_value)*parseFloat(m.multiplier)*(1+parseInt(traits)*0.07)*100)/100;
+}
+
+// ── DASHBOARD
+async function loadDash(){
+  document.getElementById('liveFlips').innerHTML='<div class="loading"><div class="spin"></div>Loading…</div>';
+  try{
+    const [users,stock,flips,me]=await Promise.all([
+      api('/api/admin/users').catch(()=>[]),
+      api('/api/botstock').catch(()=>[]),
+      api('/api/coinflips').catch(()=>[]),
+      api('/api/me').catch(()=>({})),
     ]);
-    _brainrots = brainrots;
-    _mutations = mutations;
-    populateBrainrotSelects();
-    populateMutationSelects();
-  } catch(e) {
-    toast('Failed to initialize: ' + e.message, 'err');
-  }
-  loadDashboard();
-}
-
-function populateBrainrotSelects() {
-  const ids = ['additem-brainrot', 'stock-brainrot'];
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.innerHTML = '<option value="">— Select brainrot —</option>';
-    _brainrots.forEach(b => {
-      el.innerHTML += `<option value="${b.id}">${b.emoji} ${b.name} (${fmt(b.base_value)})</option>`;
-    });
-  });
-}
-
-function populateMutationSelects() {
-  const ids = ['additem-mutation', 'stock-mutation'];
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.innerHTML = '<option value="">— Select mutation —</option>';
-    _mutations.forEach(m => {
-      el.innerHTML += `<option value="${m.id}">${m.name} (${m.multiplier}x)</option>`;
-    });
-  });
-}
-
-// ── DASHBOARD ────────────────────────────────────────────────────────────────
-
-async function loadDashboard() {
-  try {
-    const [users, stock, flips, me] = await Promise.all([
-      api('/api/admin/users').catch(() => []),
-      api('/api/botstock'),
-      api('/api/coinflips'),
-      api('/api/me'),
-    ]);
-
-    document.getElementById('stat-users').textContent = users.length || '—';
-    document.getElementById('stat-stock').textContent = stock.length;
-    document.getElementById('stat-flips').textContent = flips.length;
-    document.getElementById('stat-inv').textContent = me.inventory_value_fmt || '0';
-
-    const el = document.getElementById('liveFlips');
-    if (!flips.length) { el.innerHTML = '<div class="empty-state">No open coinflips right now</div>'; return; }
-    el.innerHTML = `<div class="table-wrap"><table>
-      <thead><tr><th>Creator</th><th>Item</th><th>Mutation</th><th>Value</th><th>Side</th></tr></thead>
-      <tbody>` + flips.map(f => `
-        <tr>
-          <td><div class="user-cell"><img class="avatar" src="${f.creator_avatar||'/static/default-avatar.png'}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22><rect width=%2232%22 height=%2232%22 rx=%2216%22 fill=%22%23333%22/></svg>'"><div><div class="username">${f.creator_name}</div></div></div></td>
-          <td>${f.emoji} ${f.item_name}</td>
-          <td><span class="${mutClass(f.mutation)}">${f.mutation}</span></td>
-          <td style="color:var(--gold);font-weight:700">${fmt(f.value)}</td>
-          <td><span class="badge ${f.creator_side==='fire'?'badge-fire':'badge-ice'}">${f.creator_side==='fire'?'🔥':'❄️'} ${f.creator_side.toUpperCase()}</span></td>
-        </tr>`).join('') + `</tbody></table></div>`;
-  } catch(e) {
-    toast('Dashboard load error: ' + e.message, 'err');
+    document.getElementById('st-users').textContent=users.length||'0';
+    document.getElementById('st-stock').textContent=stock.length||'0';
+    document.getElementById('st-flips').textContent=flips.length||'0';
+    document.getElementById('st-bal').textContent=me.sabcoins_fmt||'0';
+    const el=document.getElementById('liveFlips');
+    if(!flips.length){el.innerHTML='<div class="empty">No open coinflips</div>';return;}
+    el.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Creator</th><th>Item</th><th>Mutation</th><th>Value</th><th>Side</th></tr></thead><tbody>`
+      +flips.map(f=>`<tr>
+        <td><div class="ucell"><img class="av" src="${f.creator_avatar||dfAv()}" onerror="this.src='${dfAv()}'">
+          <div class="uname">${f.creator_name}</div></div></td>
+        <td>${f.emoji} ${f.item_name}</td>
+        <td><span class="${mc(f.mutation)}">${f.mutation}</span></td>
+        <td style="color:var(--gold);font-weight:700">${fmt(f.value)}</td>
+        <td><span class="badge ${f.creator_side==='fire'?'bg-fire':'bg-ice'}">${f.creator_side==='fire'?'🔥':'❄️'} ${f.creator_side.toUpperCase()}</span></td>
+      </tr>`).join('')+'</tbody></table></div>';
+  }catch(e){
+    document.getElementById('liveFlips').innerHTML=`<div class="empty" style="color:var(--red)">Error: ${e.message}</div>`;
   }
 }
 
-// ── USERS ────────────────────────────────────────────────────────────────────
-
-async function loadUsers() {
-  try {
-    _users = await api('/api/admin/users');
-    renderUsersTable(_users);
-    populateUserSelects();
-  } catch(e) {
-    document.getElementById('usersTable').innerHTML = `<tr><td colspan="6"><div class="empty-state">Failed to load users</div></td></tr>`;
+// ── USERS
+async function loadUsers(){
+  try{
+    _U=await api('/api/admin/users');
+    renderUsers(_U);
+    fillUserSelects();
+  }catch(e){
+    document.getElementById('usersTbl').innerHTML=`<tr><td colspan="6"><div class="empty" style="color:var(--red)">Error: ${e.message}</div></td></tr>`;
   }
 }
 
-function renderUsersTable(users) {
-  const el = document.getElementById('usersTable');
-  if (!users.length) { el.innerHTML = '<tr><td colspan="6"><div class="empty-state">No users found</div></td></tr>'; return; }
-  el.innerHTML = users.map(u => {
-    const wr = u.total_games > 0 ? Math.round(u.total_wins/u.total_games*100) : 0;
-    return `<tr>
-      <td><div class="user-cell">
-        <img class="avatar" src="${u.avatar||''}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22><rect width=%2232%22 height=%2232%22 rx=%2216%22 fill=%22%23333%22/></svg>'">
-        <div><div class="username">${u.username}</div><div class="user-id">${u.id}</div></div>
-      </div></td>
+function renderUsers(list){
+  const el=document.getElementById('usersTbl');
+  if(!list.length){el.innerHTML='<tr><td colspan="6"><div class="empty">No users</div></td></tr>';return;}
+  el.innerHTML=list.map(u=>{
+    const wr=u.total_games>0?Math.round(u.total_wins/u.total_games*100):0;
+    return`<tr>
+      <td><div class="ucell"><img class="av" src="${u.avatar||dfAv()}" onerror="this.src='${dfAv()}'">
+        <div><div class="uname">${u.username}</div><div class="uid">${u.id}</div></div></div></td>
       <td style="color:var(--gold);font-weight:700">${fmt(u.net_worth)}</td>
       <td>${fmt(u.sabcoins)} SC</td>
       <td>${u.total_games}</td>
-      <td><span class="badge ${wr>=50?'badge-green':'badge-red'}">${wr}%</span></td>
-      <td style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn btn-ghost btn-sm" onclick="viewInventory(${u.id},'${u.username}')">📦 Inv</button>
-        <button class="btn btn-primary btn-sm" onclick="quickAddItem(${u.id},'${u.username}')">➕</button>
-        <button class="btn btn-gold btn-sm" onclick="quickAddSC(${u.id},'${u.username}')">💰</button>
+      <td><span class="badge ${wr>=50?'bg-green':'bg-red'}">${wr}%</span></td>
+      <td style="display:flex;gap:5px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="viewInv(${u.id},'${u.username.replace(/'/g,'&#39;')}')">📦</button>
+        <button class="btn btn-purple btn-sm" onclick="quickAdd(${u.id})">➕ Item</button>
+        <button class="btn btn-gold btn-sm" onclick="quickSC(${u.id})">💰 SC</button>
+        ${u.is_banned
+          ?`<button class="btn btn-green btn-sm" onclick="unban(${u.id})">✅ Unban</button>`
+          :`<button class="btn btn-red btn-sm" onclick="ban(${u.id})">🚫 Ban</button>`
+        }
       </td>
     </tr>`;
   }).join('');
 }
 
-function filterUsers(q) {
-  const filtered = _users.filter(u => u.username.toLowerCase().includes(q.toLowerCase()) || String(u.id).includes(q));
-  renderUsersTable(filtered);
+function filterUsers(q){
+  renderUsers(_U.filter(u=>u.username.toLowerCase().includes(q.toLowerCase())||String(u.id).includes(q)));
 }
 
-function populateUserSelects() {
-  const ids = ['additem-user', 'cf-user', 'sc-user'];
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const curr = el.value;
-    el.innerHTML = '<option value="">— Select a user —</option>';
-    _users.forEach(u => {
-      el.innerHTML += `<option value="${u.id}" ${u.id==curr?'selected':''}>${u.username}</option>`;
-    });
-  });
-}
-
-async function viewInventory(userId, username) {
-  document.getElementById('user-inv-title').textContent = `${username}'s Inventory`;
-  document.getElementById('user-inv-table').innerHTML = '<tr><td colspan="5"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>';
-  openModal('modal-user-inv');
-  try {
-    const items = await api('/api/admin/inventory/' + userId);
-    if (!items.length) {
-      document.getElementById('user-inv-table').innerHTML = '<tr><td colspan="5"><div class="empty-state">No items</div></td></tr>';
-      return;
-    }
-    document.getElementById('user-inv-table').innerHTML = items.map(i => `
-      <tr>
-        <td>${i.emoji} <strong>${i.name}</strong></td>
-        <td><span class="${mutClass(i.mutation)}">${i.mutation}</span></td>
-        <td>${i.traits}T</td>
-        <td style="color:var(--gold);font-weight:700">${fmt(i.value)}</td>
-        <td>${i.in_use ? '<span class="badge badge-red">In Use</span>' : '<span class="badge badge-green">Free</span>'}</td>
-      </tr>`).join('');
-  } catch(e) {
-    document.getElementById('user-inv-table').innerHTML = `<tr><td colspan="5"><div class="empty-state">Error: ${e.message}</div></td></tr>`;
+async function viewInv(uid,uname){
+  document.getElementById('inv-title').textContent=uname+"'s Inventory";
+  document.getElementById('inv-tbl').innerHTML='<tr><td colspan="6"><div class="loading"><div class="spin"></div>Loading…</div></td></tr>';
+  openModal('m-inv');
+  try{
+    const items=await api('/api/admin/inventory/'+uid);
+    if(!items.length){document.getElementById('inv-tbl').innerHTML='<tr><td colspan="6"><div class="empty">No items</div></td></tr>';return;}
+    document.getElementById('inv-tbl').innerHTML=items.map(i=>`<tr>
+      <td>${i.emoji} <strong>${i.name}</strong></td>
+      <td><span class="${mc(i.mutation)}">${i.mutation}</span></td>
+      <td>${i.traits}T</td>
+      <td style="color:var(--gold);font-weight:700">${fmt(i.value)}</td>
+      <td>${i.in_use?'<span class="badge bg-red">In Use</span>':'<span class="badge bg-green">Free</span>'}</td>
+      <td><button class="btn btn-red btn-sm" onclick="removeItem(${i.id},this)">🗑 Remove</button></td>
+    </tr>`).join('');
+  }catch(e){
+    document.getElementById('inv-tbl').innerHTML=`<tr><td colspan="6"><div class="empty" style="color:var(--red)">Error: ${e.message}</div></td></tr>`;
   }
 }
 
-function quickAddItem(userId, username) {
-  showPage('additem');
-  setTimeout(() => {
-    document.getElementById('additem-user').value = userId;
-    loadUserInventory(userId);
-  }, 100);
+async function removeItem(invId,btn){
+  if(!confirm('Remove this item?')) return;
+  try{
+    await api('/api/admin/removeitem/'+invId,'DELETE');
+    btn.closest('tr').remove();
+    toast('Item removed');
+  }catch(e){ toast('Error: '+e.message,'err'); }
 }
 
-function quickAddSC(userId, username) {
-  showPage('sccoins');
-  setTimeout(() => {
-    document.getElementById('sc-user').value = userId;
-  }, 100);
+async function ban(uid){
+  if(!confirm('Ban this user?')) return;
+  try{ await api('/api/admin/ban/'+uid,'POST'); toast('User banned'); loadUsers(); }
+  catch(e){ toast('Error: '+e.message,'err'); }
+}
+async function unban(uid){
+  try{ await api('/api/admin/unban/'+uid,'POST'); toast('User unbanned'); loadUsers(); }
+  catch(e){ toast('Error: '+e.message,'err'); }
 }
 
-// ── ADD ITEM ─────────────────────────────────────────────────────────────────
+function quickAdd(uid){ go('additem'); setTimeout(()=>{document.getElementById('ai-user').value=uid;},100); }
+function quickSC(uid){  go('sccoins'); setTimeout(()=>{document.getElementById('sc-user').value=uid;},100); }
 
-function loadAddItem() {
-  if (!_users.length) loadUsers().then(populateUserSelects);
-  else populateUserSelects();
+// ── ADD ITEM
+function loadAddItem(){
+  if(!_U.length) loadUsers(); else fillUserSelects();
+  if(!_B.length||!_M.length) api('/api/admin/brainrots').then(b=>{_B=b;fillBrainrots();});
 }
 
-function calcValue(brainrotId, mutationId, traits) {
-  const b = _brainrots.find(x => x.id == brainrotId);
-  const m = _mutations.find(x => x.id == mutationId);
-  if (!b || !m) return 0;
-  return Math.round(parseFloat(b.base_value) * parseFloat(m.multiplier) * (1 + parseInt(traits) * 0.07) * 100) / 100;
+function previewItem(){
+  const bId=document.getElementById('ai-br').value;
+  const mId=document.getElementById('ai-mut').value;
+  const tr=document.getElementById('ai-traits').value;
+  const el=document.getElementById('ai-preview');
+  if(!bId||!mId){el.innerHTML='<div style="font-size:44px">❓</div><div style="margin-top:8px;font-size:13px;color:var(--muted)">Select brainrot and mutation</div>';return;}
+  const b=_B.find(x=>x.id==bId), m=_M.find(x=>x.id==mId);
+  const val=calcVal(bId,mId,tr);
+  el.innerHTML=`<div style="font-size:50px">${b.emoji}</div>
+    <div style="font-size:17px;font-weight:800;margin-top:6px">${b.name}</div>
+    <div style="font-size:13px;margin-top:3px" class="${mc(m.name)}">${m.name} (${m.multiplier}x)</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Traits: ${tr}</div>
+    <div style="font-size:22px;font-weight:800;color:var(--gold);margin-top:8px">${fmt(val)}</div>`;
 }
 
-function updateItemPreview() {
-  const bId = document.getElementById('additem-brainrot').value;
-  const mId = document.getElementById('additem-mutation').value;
-  const traits = document.getElementById('additem-traits').value;
-  const el = document.getElementById('item-preview');
-  if (!bId || !mId) { el.innerHTML = '<div style="font-size:48px">❓</div><div style="margin-top:8px;font-size:14px;color:var(--muted)">Select brainrot and mutation</div>'; return; }
-  const b = _brainrots.find(x => x.id == bId);
-  const m = _mutations.find(x => x.id == mId);
-  const val = calcValue(bId, mId, traits);
-  el.innerHTML = `
-    <div style="font-size:56px">${b.emoji}</div>
-    <div style="font-size:18px;font-weight:800;margin-top:8px">${b.name}</div>
-    <div style="font-size:14px;margin-top:4px" class="${mutClass(m.name)}">${m.name} (${m.multiplier}x)</div>
-    <div style="font-size:12px;color:var(--muted);margin-top:2px">Traits: ${traits} · Tier: <span class="${tierClass(b.tier)}">${b.tier.toUpperCase()}</span></div>
-    <div style="font-size:24px;font-weight:800;color:var(--gold);margin-top:8px">${fmt(val)}</div>`;
+async function doAddItem(){
+  const uid=document.getElementById('ai-user').value;
+  const bId=document.getElementById('ai-br').value;
+  const mId=document.getElementById('ai-mut').value;
+  const tr=parseInt(document.getElementById('ai-traits').value);
+  if(!uid) return toast('Select a user','err');
+  if(!bId) return toast('Select a brainrot','err');
+  if(!mId) return toast('Select a mutation','err');
+  try{
+    const r=await api('/api/admin/additem','POST',{user_id:parseInt(uid),brainrot_id:parseInt(bId),mutation_id:parseInt(mId),traits:tr});
+    toast(`${r.emoji} ${r.name} [${r.mutation}] added! Value: ${fmt(r.value)}`);
+  }catch(e){ toast('Error: '+e.message,'err'); }
 }
 
-async function loadUserInventory(userId) { /* for display purposes */ }
-
-async function submitAddItem() {
-  const userId    = document.getElementById('additem-user').value;
-  const brainrotId = document.getElementById('additem-brainrot').value;
-  const mutationId = document.getElementById('additem-mutation').value;
-  const traits    = parseInt(document.getElementById('additem-traits').value);
-  if (!userId || !brainrotId || !mutationId) { toast('Fill in all fields', 'err'); return; }
-  try {
-    await api('/api/admin/additem', 'POST', { user_id: parseInt(userId), brainrot_id: parseInt(brainrotId), mutation_id: parseInt(mutationId), traits });
-    const b = _brainrots.find(x => x.id == brainrotId);
-    const m = _mutations.find(x => x.id == mutationId);
-    toast(`${b.emoji} ${b.name} [${m.name}] added!`);
-  } catch(e) {
-    toast('Error: ' + e.message, 'err');
+// ── BOT STOCK
+async function loadStock(){
+  try{
+    const stock=await api('/api/botstock');
+    const el=document.getElementById('stockTbl');
+    if(!stock.length){el.innerHTML='<tr><td colspan="6"><div class="empty">Bot stock is empty</div></td></tr>';return;}
+    el.innerHTML=stock.map(s=>`<tr>
+      <td>${s.emoji} <strong>${s.name}</strong></td>
+      <td><span class="${mc(s.mutation)}">${s.mutation}</span></td>
+      <td>${s.traits}T</td>
+      <td style="color:var(--gold);font-weight:700">${fmt(s.value)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:var(--muted)">#${s.id}</td>
+      <td><button class="btn btn-red btn-sm" onclick="removeStock(${s.id},this)">🗑 Remove</button></td>
+    </tr>`).join('');
+  }catch(e){
+    document.getElementById('stockTbl').innerHTML=`<tr><td colspan="6"><div class="empty" style="color:var(--red)">Error: ${e.message}</div></td></tr>`;
   }
 }
 
-// ── BOT STOCK ─────────────────────────────────────────────────────────────────
-
-async function loadBotStock() {
-  try {
-    _botStock = await api('/api/botstock');
-    const el = document.getElementById('stockTable');
-    if (!_botStock.length) { el.innerHTML = '<tr><td colspan="6"><div class="empty-state">No items in stock</div></td></tr>'; return; }
-    el.innerHTML = _botStock.map(s => `
-      <tr>
-        <td>${s.emoji} <strong>${s.name}</strong></td>
-        <td><span class="${mutClass(s.mutation)}">${s.mutation}</span></td>
-        <td>${s.traits}T</td>
-        <td style="color:var(--gold);font-weight:700">${fmt(s.value)}</td>
-        <td style="font-family:'JetBrains Mono',monospace;color:var(--muted)">#${s.id}</td>
-        <td><button class="btn btn-red btn-sm" onclick="removeStock(${s.id})">Remove</button></td>
-      </tr>`).join('');
-  } catch(e) {
-    document.getElementById('stockTable').innerHTML = `<tr><td colspan="6"><div class="empty-state">Error loading stock</div></td></tr>`;
-  }
-}
-
-function showAddBotStock() {
-  document.getElementById('stock-brainrot').value = '';
-  document.getElementById('stock-mutation').value = '';
-  document.getElementById('stock-traits').value = 0;
-  document.getElementById('stockTraitVal').textContent = '0';
-  document.getElementById('stock-preview').innerHTML = 'Select brainrot and mutation to preview';
-  openModal('modal-addstock');
-}
-
-function updateStockPreview() {
-  const bId = document.getElementById('stock-brainrot').value;
-  const mId = document.getElementById('stock-mutation').value;
-  const traits = document.getElementById('stock-traits').value;
-  const el = document.getElementById('stock-preview');
-  if (!bId || !mId) { el.innerHTML = 'Select brainrot and mutation to preview'; return; }
-  const b = _brainrots.find(x => x.id == bId);
-  const m = _mutations.find(x => x.id == mId);
-  const val = calcValue(bId, mId, traits);
-  el.innerHTML = `<span style="font-size:32px">${b.emoji}</span> <strong>${b.name}</strong> <span class="${mutClass(m.name)}">[${m.name}]</span> ${traits > 0 ? '+'+traits+'T' : ''} — <span style="color:var(--gold);font-weight:700">${fmt(val)}</span>`;
-}
-
-async function submitAddBotStock() {
-  const bId    = document.getElementById('stock-brainrot').value;
-  const mId    = document.getElementById('stock-mutation').value;
-  const traits = parseInt(document.getElementById('stock-traits').value);
-  if (!bId || !mId) { toast('Select brainrot and mutation', 'err'); return; }
-  try {
-    await api('/api/admin/addbotstock', 'POST', { brainrot_id: parseInt(bId), mutation_id: parseInt(mId), traits });
-    toast('Added to bot stock!');
-    closeModal('modal-addstock');
-    loadBotStock();
-  } catch(e) {
-    toast('Error: ' + e.message, 'err');
-  }
-}
-
-async function removeStock(stockId) {
-  if (!confirm('Remove this item from bot stock?')) return;
-  try {
-    await api('/api/admin/removebotstock/' + stockId, 'DELETE');
+async function removeStock(id,btn){
+  if(!confirm('Remove from bot stock?')) return;
+  try{
+    await api('/api/admin/removebotstock/'+id,'DELETE');
+    btn.closest('tr').remove();
     toast('Removed from bot stock');
-    loadBotStock();
-  } catch(e) {
-    toast('Error: ' + e.message, 'err');
+  }catch(e){ toast('Error: '+e.message,'err'); }
+}
+
+function previewStock(){
+  const bId=document.getElementById('ms-br').value;
+  const mId=document.getElementById('ms-mut').value;
+  const tr=document.getElementById('ms-traits').value;
+  const el=document.getElementById('ms-preview');
+  if(!bId||!mId){el.innerHTML='Select brainrot and mutation to preview';return;}
+  const b=_B.find(x=>x.id==bId), m=_M.find(x=>x.id==mId);
+  const val=calcVal(bId,mId,tr);
+  el.innerHTML=`<span style="font-size:28px">${b.emoji}</span> <strong>${b.name}</strong> <span class="${mc(m.name)}">[${m.name}]</span>${tr>0?' +'+tr+'T':''} — <span style="color:var(--gold);font-weight:700">${fmt(val)}</span>`;
+}
+
+async function doAddStock(){
+  const bId=document.getElementById('ms-br').value;
+  const mId=document.getElementById('ms-mut').value;
+  const tr=parseInt(document.getElementById('ms-traits').value);
+  if(!bId) return toast('Select a brainrot','err');
+  if(!mId) return toast('Select a mutation','err');
+  try{
+    const r=await api('/api/admin/addbotstock','POST',{brainrot_id:parseInt(bId),mutation_id:parseInt(mId),traits:tr});
+    toast(`${r.emoji} ${r.name} added to bot stock! Value: ${fmt(r.value)}`);
+    closeModal('m-addstock');
+    loadStock();
+  }catch(e){ toast('Error: '+e.message,'err'); }
+}
+
+// ── COINFLIP
+function loadCfPage(){
+  if(!_U.length) loadUsers().then(fillUserSelects); else fillUserSelects();
+  _cfSel.clear(); _cfSide=null; _cfUser=null; _cfData=[];
+  renderCfGrid([]); updateCfSum(); updateCfBtn();
+}
+
+async function loadCfInv(uid){
+  _cfUser=uid; _cfSel.clear(); _cfData=[];
+  updateCfSum(); updateCfBtn();
+  const el=document.getElementById('cf-grid');
+  if(!uid){el.innerHTML='<div class="empty">Select a user first</div>';return;}
+  el.innerHTML='<div class="loading"><div class="spin"></div>Loading…</div>';
+  try{
+    const items=await api('/api/admin/inventory/'+uid);
+    _cfData=items.filter(i=>!i.in_use);
+    renderCfGrid(_cfData);
+  }catch(e){
+    el.innerHTML=`<div class="empty" style="color:var(--red)">Error: ${e.message}</div>`;
   }
 }
 
-// ── COINFLIP ──────────────────────────────────────────────────────────────────
-
-async function loadCoinflipPage() {
-  if (!_users.length) await loadUsers();
-  else populateUserSelects();
-  _cfSelected.clear();
-  _cfSide = null;
-  renderCfItems([]);
-  updateCfSummary();
-  updateCfBtn();
-}
-
-async function loadCfInventory(userId) {
-  _cfUser = userId;
-  _cfSelected.clear();
-  updateCfSummary();
-  updateCfBtn();
-
-  const el = document.getElementById('cf-item-grid');
-  if (!userId) { el.innerHTML = '<div class="empty-state">Select a user to see their items</div>'; return; }
-  el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
-  try {
-    const items = await api('/api/admin/inventory/' + userId);
-    _allCfItemsData = items.filter(i => !i.in_use);
-    renderCfItems(_allCfItemsData);
-  } catch(e) {
-    el.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`;
-  }
-}
-
-function renderCfItems(items) {
-  const el = document.getElementById('cf-item-grid');
-  if (!items.length) { el.innerHTML = '<div class="empty-state">No available items</div>'; return; }
-  el.innerHTML = items.map(i => `
-    <div class="item-card ${_cfSelected.has(i.id) ? 'selected' : ''}" id="cf-card-${i.id}" onclick="toggleCfItem(${i.id})">
-      <div class="check-mark">✓</div>
-      <span class="item-emoji">${i.emoji}</span>
-      <div class="item-name">${i.name}</div>
-      <div class="item-mut ${mutClass(i.mutation)}">${i.mutation}</div>
-      ${i.traits > 0 ? `<div style="font-size:10px;color:var(--muted)">+${i.traits}T</div>` : ''}
-      <div class="item-val">${fmt(i.value)}</div>
+function renderCfGrid(items){
+  const el=document.getElementById('cf-grid');
+  if(!items.length){el.innerHTML='<div class="empty">No available items</div>';return;}
+  el.innerHTML=items.map(i=>`
+    <div class="ic ${_cfSel.has(i.id)?'sel':''}" id="ci-${i.id}" onclick="toggleCf(${i.id})">
+      <div class="ck">✓</div>
+      <span class="ic-emoji">${i.emoji}</span>
+      <div class="ic-name">${i.name}</div>
+      <div class="ic-mut ${mc(i.mutation)}">${i.mutation}</div>
+      ${i.traits>0?`<div style="font-size:9px;color:var(--muted)">+${i.traits}T</div>`:''}
+      <div class="ic-val">${fmt(i.value)}</div>
     </div>`).join('');
 }
 
-function filterCfItems(q) {
-  const filtered = _allCfItemsData.filter(i =>
-    i.name.toLowerCase().includes(q.toLowerCase()) ||
-    i.mutation.toLowerCase().includes(q.toLowerCase())
-  );
-  renderCfItems(filtered);
+function filterCf(q){
+  renderCfGrid(_cfData.filter(i=>i.name.toLowerCase().includes(q.toLowerCase())||i.mutation.toLowerCase().includes(q.toLowerCase())));
 }
 
-function toggleCfItem(id) {
-  if (_cfSelected.has(id)) _cfSelected.delete(id);
-  else _cfSelected.add(id);
-  const card = document.getElementById('cf-card-' + id);
-  if (card) card.classList.toggle('selected', _cfSelected.has(id));
-  // update check marks
-  document.querySelectorAll('.item-card').forEach(c => {
-    const cid = parseInt(c.id.replace('cf-card-',''));
-    const sel = _cfSelected.has(cid);
-    c.classList.toggle('selected', sel);
-    const cm = c.querySelector('.check-mark');
-    if (cm) cm.style.display = sel ? 'flex' : 'none';
+function toggleCf(id){
+  _cfSel.has(id)?_cfSel.delete(id):_cfSel.add(id);
+  document.querySelectorAll('[id^="ci-"]').forEach(el=>{
+    const cid=parseInt(el.id.replace('ci-',''));
+    const sel=_cfSel.has(cid);
+    el.classList.toggle('sel',sel);
+    const ck=el.querySelector('.ck');
+    if(ck) ck.style.display=sel?'flex':'none';
   });
-  updateCfSummary();
+  updateCfSum(); updateCfBtn();
+}
+
+function cfTotal(){ return _cfData.filter(i=>_cfSel.has(i.id)).reduce((s,i)=>s+parseFloat(i.value),0); }
+
+function updateCfSum(){
+  const sumEl=document.getElementById('cf-summary');
+  const valEl=document.getElementById('cf-val-disp');
+  if(!_cfSel.size){sumEl.style.display='none';valEl.textContent='0';return;}
+  sumEl.style.display='block';
+  const sel=_cfData.filter(i=>_cfSel.has(i.id));
+  document.getElementById('cf-items-list').innerHTML=sel.map(i=>`<div style="display:flex;justify-content:space-between;padding:2px 0"><span>${i.emoji} ${i.name} <span class="${mc(i.mutation)}" style="font-size:10px">[${i.mutation}]</span></span><span style="color:var(--gold)">${fmt(i.value)}</span></div>`).join('');
+  const t=cfTotal();
+  document.getElementById('cf-total').textContent=fmt(t);
+  valEl.textContent=fmt(t);
+}
+
+function pickSide(s){
+  _cfSide=s;
+  document.getElementById('sb-fire').className='side-btn'+(s==='fire'?' fire-sel':'');
+  document.getElementById('sb-ice').className='side-btn'+(s==='ice'?' ice-sel':'');
   updateCfBtn();
 }
 
-function getTotalCfValue() {
-  return _allCfItemsData
-    .filter(i => _cfSelected.has(i.id))
-    .reduce((s, i) => s + parseFloat(i.value), 0);
+function updateCfBtn(){
+  const btn=document.getElementById('cf-btn');
+  const ok=_cfSel.size>0&&_cfSide&&_cfUser;
+  btn.disabled=!ok;
+  if(_cfSide==='fire') btn.className='btn btn-fire';
+  else if(_cfSide==='ice') btn.className='btn btn-ice';
+  else btn.className='btn btn-purple';
+  btn.style.cssText='width:100%;justify-content:center;font-size:15px;padding:14px;';
+  btn.disabled=!ok;
 }
 
-function updateCfSummary() {
-  const summaryEl = document.getElementById('cf-selected-summary');
-  const listEl    = document.getElementById('cf-selected-list');
-  const valEl     = document.getElementById('cf-total-val');
-  const flipValEl = document.getElementById('cf-flip-value-display');
+async function doCreateCf(){
+  if(!_cfSel.size||!_cfSide||!_cfUser) return toast('Select items, side, and user','err');
+  const ids=Array.from(_cfSel);
+  const total=cfTotal();
+  try{
+    const r=await api('/api/admin/createcoinflip','POST',{user_id:parseInt(_cfUser),inventory_ids:ids,side:_cfSide});
 
-  if (!_cfSelected.size) {
-    summaryEl.style.display = 'none';
-    flipValEl.textContent = '0.00';
-    return;
-  }
-  summaryEl.style.display = 'block';
-  const selected = _allCfItemsData.filter(i => _cfSelected.has(i.id));
-  listEl.innerHTML = selected.map(i => `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>${i.emoji} ${i.name} <span class="${mutClass(i.mutation)}" style="font-size:11px">[${i.mutation}]</span></span><span style="color:var(--gold)">${fmt(i.value)}</span></div>`).join('');
-  const total = getTotalCfValue();
-  valEl.textContent = fmt(total);
-  flipValEl.textContent = fmt(total);
+    // Reset & replay coin animation
+    const old=document.getElementById('cf-coin');
+    const fresh=old.cloneNode(true);
+    fresh.id='cf-coin';
+    old.parentNode.replaceChild(fresh,old);
+
+    document.getElementById('cf-anim-val').textContent=fmt(total);
+    document.getElementById('cf-anim-side').innerHTML=_cfSide==='fire'
+      ?'<span style="color:var(--fire)">🔥 FIRE</span>'
+      :'<span style="color:var(--ice)">❄️ ICE</span>';
+    document.getElementById('cf-anim-id').textContent='#'+r.game_id;
+    openModal('m-cf-anim');
+
+    _cfSel.clear();
+    _cfSide=null;
+    document.getElementById('sb-fire').className='side-btn';
+    document.getElementById('sb-ice').className='side-btn';
+    loadCfInv(_cfUser);
+    toast(`Coinflip #${r.game_id} created — value ${fmt(total)}`);
+  }catch(e){ toast('Error: '+e.message,'err'); }
 }
 
-function selectSide(side) {
-  _cfSide = side;
-  document.getElementById('side-fire').classList.toggle('selected', side === 'fire');
-  document.getElementById('side-ice').classList.toggle('selected', side === 'ice');
-  updateCfBtn();
+// ── SC COINS
+async function loadSC(){
+  if(!_U.length) await loadUsers(); else fillUserSelects();
+  const el=document.getElementById('scTbl');
+  if(!_U.length){el.innerHTML='<tr><td colspan="2"><div class="empty">No users</div></td></tr>';return;}
+  el.innerHTML=_U.map(u=>`<tr>
+    <td><div class="ucell"><img class="av" src="${u.avatar||dfAv()}" onerror="this.src='${dfAv()}'"><span>${u.username}</span></div></td>
+    <td style="color:var(--gold);font-weight:700">${fmt(u.sabcoins)} SC</td>
+  </tr>`).join('');
 }
 
-function updateCfBtn() {
-  const btn = document.getElementById('cf-create-btn');
-  btn.disabled = !(_cfSelected.size > 0 && _cfSide && _cfUser);
-  if (_cfSide === 'fire') {
-    btn.className = 'btn btn-fire';
-  } else if (_cfSide === 'ice') {
-    btn.className = 'btn btn-ice';
-  } else {
-    btn.className = 'btn btn-primary';
-  }
-  btn.style.width = '100%';
-  btn.style.justifyContent = 'center';
-  btn.style.fontSize = '15px';
-  btn.style.padding = '14px';
-  btn.disabled = !(_cfSelected.size > 0 && _cfSide && _cfUser);
+async function doSC(action){
+  const uid=document.getElementById('sc-user').value;
+  const amount=parseFloat(document.getElementById('sc-amount').value);
+  if(!uid) return toast('Select a user','err');
+  if(isNaN(amount)||amount<0) return toast('Enter a valid amount','err');
+  try{
+    const r=await api('/api/admin/sccoins','POST',{user_id:parseInt(uid),action,amount});
+    const u=_U.find(x=>x.id==uid);
+    toast(`${action==='add'?'Added':'action'==='remove'?'Removed':'Set'} — new balance: ${fmt(r.new_balance)} SC`);
+    // Refresh user list to update table
+    _U=await api('/api/admin/users').catch(()=>_U);
+    fillUserSelects();
+    loadSC();
+  }catch(e){ toast('Error: '+e.message,'err'); }
 }
 
-async function createCoinflip() {
-  if (!_cfSelected.size || !_cfSide || !_cfUser) { toast('Select items, a side, and a user', 'err'); return; }
-  const selectedIds = Array.from(_cfSelected);
-  const total = getTotalCfValue();
-  try {
-    const result = await api('/api/admin/createcoinflip', 'POST', {
-      user_id: parseInt(_cfUser),
-      inventory_ids: selectedIds,
-      side: _cfSide,
-    });
-
-    // Show animation modal
-    const sideStr = _cfSide === 'fire' ? '🔥 FIRE' : '❄️ ICE';
-    document.getElementById('cf-anim-value').textContent = fmt(total);
-    document.getElementById('cf-anim-side').innerHTML = `<span style="color:var(--${_cfSide==='fire'?'fire':'ice'})">${sideStr}</span>`;
-    document.getElementById('cf-anim-id').textContent = '#' + result.game_id;
-
-    // reset coin animation by cloning the element
-    const oldCoin = document.getElementById('cf-coin-emoji');
-    const newCoin = oldCoin.cloneNode(true);
-    newCoin.id = 'cf-coin-emoji';
-    oldCoin.parentNode.replaceChild(newCoin, oldCoin);
-
-    openModal('modal-cf-anim');
-
-    // reset state
-    _cfSelected.clear();
-    _cfSide = null;
-    document.getElementById('side-fire').classList.remove('selected');
-    document.getElementById('side-ice').classList.remove('selected');
-    loadCfInventory(_cfUser);
-
-    toast(`Coinflip #${result.game_id} created! Value: ${fmt(total)}`);
-  } catch(e) {
-    toast('Error: ' + e.message, 'err');
-  }
-}
-
-// ── SC COINS ──────────────────────────────────────────────────────────────────
-
-async function loadScCoins() {
-  if (!_users.length) await loadUsers();
-  else populateUserSelects();
-
-  try {
-    const users = _users;
-    const el = document.getElementById('scTable');
-    el.innerHTML = users.map(u => `
-      <tr>
-        <td><div class="user-cell"><img class="avatar" src="${u.avatar||''}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22><rect width=%2232%22 height=%2232%22 rx=%2216%22 fill=%22%23333%22/></svg>'"><span>${u.username}</span></div></td>
-        <td style="color:var(--gold);font-weight:700">${fmt(u.sabcoins)} SC</td>
-      </tr>`).join('');
-  } catch(e) {}
-}
-
-async function scAction(action) {
-  const userId = document.getElementById('sc-user').value;
-  const amount = parseFloat(document.getElementById('sc-amount').value);
-  if (!userId) { toast('Select a user', 'err'); return; }
-  if (isNaN(amount) || amount < 0) { toast('Enter a valid amount', 'err'); return; }
-  try {
-    await api('/api/admin/sccoins', 'POST', { user_id: parseInt(userId), action, amount });
-    const u = _users.find(x => x.id == userId);
-    toast(`${action === 'add' ? 'Added' : action === 'remove' ? 'Removed' : 'Set'} ${fmt(amount)} SC ${action === 'add' ? 'to' : action === 'remove' ? 'from' : 'for'} ${u ? u.username : 'user'}`);
-    // refresh user list
-    const users = await api('/api/admin/users');
-    _users = users;
-    loadScCoins();
-  } catch(e) {
-    toast('Error: ' + e.message, 'err');
-  }
-}
-
-// ── START ─────────────────────────────────────────────────────────────────────
+// ── START
 init();
 </script>
 </body>
